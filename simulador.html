@@ -1,0 +1,801 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Laboratorio Virtual · Vaciado de un Estanque (Ley de Torricelli)</title>
+<style>
+  :root{
+    --bg-1:#0b1220;
+    --bg-2:#111a2e;
+    --panel:#141d33;
+    --panel-2:#182241;
+    --border:#26325a;
+    --accent:#38bdf8;
+    --accent-2:#22d3ee;
+    --accent-warn:#f59e0b;
+    --accent-ok:#34d399;
+    --accent-bad:#f87171;
+    --text:#e6edf7;
+    --text-dim:#93a2c2;
+    --water:#38bdf8;
+  }
+  *{box-sizing:border-box;}
+  html,body{
+    margin:0;padding:0;height:100%;
+    font-family:'Segoe UI',Roboto,Arial,sans-serif;
+    background:radial-gradient(1200px 800px at 10% -10%, #182848 0%, transparent 60%),
+               radial-gradient(1200px 800px at 110% 10%, #10203a 0%, transparent 55%),
+               linear-gradient(180deg,var(--bg-1),var(--bg-2));
+    color:var(--text);
+  }
+  .app{
+    display:grid;
+    grid-template-columns:320px 1fr;
+    grid-template-rows:auto 1fr;
+    grid-template-areas:
+      "header header"
+      "sidebar main";
+    min-height:100vh;
+    gap:0;
+  }
+  header{
+    grid-area:header;
+    padding:16px 24px;
+    background:linear-gradient(90deg,rgba(56,189,248,.12),rgba(34,211,238,.03));
+    border-bottom:1px solid var(--border);
+    display:flex;align-items:center;gap:12px;
+  }
+  header .logo{
+    width:38px;height:38px;border-radius:10px;
+    background:linear-gradient(135deg,var(--accent),var(--accent-2));
+    display:flex;align-items:center;justify-content:center;
+    font-size:20px;box-shadow:0 0 20px rgba(56,189,248,.4);
+  }
+  header h1{font-size:17px;margin:0;font-weight:600;letter-spacing:.3px;}
+  header p{margin:2px 0 0;font-size:12px;color:var(--text-dim);}
+
+  aside{
+    grid-area:sidebar;
+    background:var(--panel);
+    border-right:1px solid var(--border);
+    padding:18px;
+    overflow-y:auto;
+  }
+  main{
+    grid-area:main;
+    padding:18px;
+    overflow-y:auto;
+  }
+
+  .card{
+    background:var(--panel-2);
+    border:1px solid var(--border);
+    border-radius:14px;
+    padding:16px;
+    margin-bottom:16px;
+  }
+  .card h2{
+    font-size:12px;text-transform:uppercase;letter-spacing:1px;
+    color:var(--accent-2);margin:0 0 12px;font-weight:700;
+    display:flex;align-items:center;gap:6px;
+  }
+  .field{margin-bottom:14px;}
+  .field label{
+    display:flex;justify-content:space-between;
+    font-size:13px;color:var(--text-dim);margin-bottom:6px;
+  }
+  .field label span.val{color:var(--accent);font-weight:700;}
+  input[type=range]{
+    background:linear-gradient(90deg,var(--accent),var(--accent-2));
+    outline:none;cursor:pointer;
+  }
+  input[type=range]::-webkit-slider-thumb{
+    -webkit-appearance:none;width:18px;height:18px;border-radius:50%;
+    background:#fff;border:3px solid var(--accent);cursor:pointer;
+    box-shadow:0 0 8px rgba(56,189,248,.7);
+  }
+  input[type=range]:disabled{opacity:.4;cursor:not-allowed;}
+  .btn-row{display:grid;grid-template-columns:1fr 1fr;gap:8px;margin-top:6px;}
+  button{
+    border:none;border-radius:10px;padding:10px 12px;font-size:13px;font-weight:600;
+    cursor:pointer;transition:.15s transform,.15s box-shadow,.15s opacity;
+    color:#04121f;
+  }
+  button:active{transform:scale(.96);}
+  button:disabled{opacity:.35;cursor:not-allowed;}
+  .btn-start{background:linear-gradient(135deg,var(--accent-ok),#10b981);grid-column:1/3;}
+  .btn-pause{background:linear-gradient(135deg,var(--accent-warn),#d97706);}
+  .btn-reset{background:linear-gradient(135deg,#94a3b8,#64748b);}
+  .btn-save{background:linear-gradient(135deg,var(--accent),var(--accent-2));grid-column:1/3;margin-top:8px;}
+
+  .stat-grid{display:grid;grid-template-columns:1fr 1fr;gap:10px;}
+  .stat{
+    background:rgba(255,255,255,.03);border:1px solid var(--border);
+    border-radius:10px;padding:10px;text-align:center;
+  }
+  .stat .label{font-size:10.5px;color:var(--text-dim);text-transform:uppercase;letter-spacing:.5px;}
+  .stat .value{font-size:18px;font-weight:700;color:var(--accent-2);margin-top:4px;font-variant-numeric:tabular-nums;}
+  .stat.time .value{color:var(--accent-ok);font-size:20px;}
+
+  .layout-main{display:grid;grid-template-columns:1.6fr 1fr;gap:16px;}
+  @media(max-width:1100px){.layout-main{grid-template-columns:1fr;}}
+
+  canvas{width:100%;display:block;border-radius:14px;background:#060c18;}
+  .canvas-wrap{
+    background:var(--panel-2);border:1px solid var(--border);border-radius:14px;
+    padding:12px;position:relative;
+  }
+  .badge{
+    position:absolute;top:22px;left:22px;
+    background:rgba(0,0,0,.4);backdrop-filter:blur(6px);
+    padding:6px 12px;border-radius:20px;font-size:12px;color:var(--text-dim);
+    border:1px solid var(--border);
+  }
+  .badge.status-running{color:var(--accent-ok);border-color:var(--accent-ok);}
+  .badge.status-paused{color:var(--accent-warn);border-color:var(--accent-warn);}
+  .badge.status-finished{color:var(--accent-bad);border-color:var(--accent-bad);}
+
+  table{width:100%;border-collapse:collapse;font-size:12.5px;}
+  thead th{
+    text-align:center;color:var(--accent-2);font-size:11px;text-transform:uppercase;
+    padding:8px 4px;border-bottom:2px solid var(--border);letter-spacing:.3px;
+  }
+  tbody td{text-align:center;padding:7px 4px;border-bottom:1px solid var(--border);color:var(--text);}
+  tbody tr:hover{background:rgba(56,189,248,.06);}
+  .empty-row td{color:var(--text-dim);font-style:italic;padding:16px;}
+  .error-ok{color:var(--accent-ok);font-weight:700;}
+  .error-warn{color:var(--accent-warn);font-weight:700;}
+  .error-bad{color:var(--accent-bad);font-weight:700;}
+
+  .formula-box{
+    font-size:12px;color:var(--text-dim);line-height:1.7;
+    background:rgba(255,255,255,.02);border-radius:10px;padding:10px;border:1px dashed var(--border);
+  }
+  .formula-box b{color:var(--accent);}
+
+  ::-webkit-scrollbar{width:8px;height:8px;}
+  ::-webkit-scrollbar-thumb{background:var(--border);border-radius:4px;}
+</style>
+</head>
+<body>
+<div class="app">
+
+  <header>
+    <div class="logo">💧</div>
+    <div>
+      <h1>Laboratorio Virtual · Vaciado de un Estanque</h1>
+      <p>Modo simulación · Ley de Torricelli con coeficiente de descarga — dh/dt = −C<sub>d</sub>·(A₀/A_e)·√(2gh) · <a href="index.html" style="color:#7dd3fc">← Volver al laboratorio</a></p>
+    </div>
+  </header>
+
+  <aside>
+    <div class="card">
+      <h2>⚙ Parámetros del Experimento</h2>
+      <div class="field">
+        <label>Nivel inicial del agua desde la base (h₀) <span class="val" id="hVal">18 cm</span></label>
+        <input type="range" id="hSlider" min="3" max="28" step="1" value="18">
+      </div>
+      <div class="field">
+        <label>Diámetro del orificio (d) <span class="val" id="dVal">5 mm</span></label>
+        <input type="range" id="dSlider" min="2" max="20" step="0.5" value="5">
+      </div>
+      <div class="field">
+        <label>Altura del orificio respecto a la base (h₀ᵣ) <span class="val" id="hoVal">2 cm</span></label>
+        <input type="range" id="hoSlider" min="0" max="25" step="1" value="2">
+      </div>
+      <div class="field">
+        <label>Diámetro interior del estanque (D) <span class="val" id="DVal">8 cm</span></label>
+        <input type="range" id="DSlider" min="5" max="40" step="0.5" value="8">
+      </div>
+      <div class="field">
+        <label>Coef. de descarga C<sub>d</sub> (1 = ideal) <span class="val" id="cdVal">0.61</span></label>
+        <input type="range" id="cdSlider" min="0.5" max="1" step="0.01" value="0.61">
+      </div>
+      <div class="btn-row">
+        <button class="btn-start" id="btnStart">▶ Iniciar Experimento</button>
+        <button class="btn-pause" id="btnPause">⏸ Pausar</button>
+        <button class="btn-reset" id="btnReset">⟲ Reiniciar</button>
+        <button class="btn-save" id="btnSave">💾 Guardar Intento</button>
+      </div>
+    </div>
+
+    <div class="card">
+      <h2>📊 Datos en Tiempo Real</h2>
+      <div class="stat-grid">
+        <div class="stat time" style="grid-column:1/3;">
+          <div class="label">Tiempo Transcurrido</div>
+          <div class="value" id="stTime">00:00.00</div>
+        </div>
+        <div class="stat">
+          <div class="label">h(t) actual</div>
+          <div class="value" id="stH">50.0 cm</div>
+        </div>
+        <div class="stat">
+          <div class="label">v(t) salida</div>
+          <div class="value" id="stV">— m/s</div>
+        </div>
+        <div class="stat">
+          <div class="label">Caudal Q(t)</div>
+          <div class="value" id="stQ">— L/s</div>
+        </div>
+        <div class="stat">
+          <div class="label">t teórico total</div>
+          <div class="value" id="stTeo">— s</div>
+        </div>
+      </div>
+    </div>
+
+    <div class="card">
+      <h2>📐 Fundamento Físico</h2>
+      <div class="formula-box">
+        <b>v</b> = √(2·g·h)<br>
+        <b>Q</b> = C<sub>d</sub>·A₀·v<br>
+        <b>dh/dt</b> = −C<sub>d</sub>·(A₀/A_e)·√(2gh)<br>
+        <b>t_total</b> = (A_e/(C<sub>d</sub>·A₀))·√(2h₀/g)<br>
+        g = 9.81 m/s² · C<sub>d</sub> ≈ 0.61 (orificio de pared delgada)
+      </div>
+    </div>
+  </aside>
+
+  <main>
+    <div class="layout-main">
+      <div class="canvas-wrap">
+        <span class="badge status-idle" id="statusBadge">● Listo para iniciar</span>
+        <canvas id="canvas" width="900" height="620"></canvas>
+      </div>
+
+      <div class="card" style="margin-bottom:0;">
+        <h2>📒 Registro de Experimentos</h2>
+        <div style="max-height:560px;overflow-y:auto;">
+        <table>
+          <thead>
+            <tr>
+              <th>N°</th><th>h₀ (cm)</th><th>d (mm)</th>
+              <th>T. Simulado (s)</th><th>T. Teórico (s)</th><th>% Error</th>
+            </tr>
+          </thead>
+          <tbody id="tableBody">
+            <tr class="empty-row"><td colspan="6">Aún no hay intentos guardados. Inicia el experimento y presiona "Guardar Intento" al finalizar.</td></tr>
+          </tbody>
+        </table>
+        </div>
+      </div>
+    </div>
+  </main>
+
+</div>
+
+<script>
+(function(){
+  "use strict";
+
+  // ---------- Constantes físicas ----------
+  const G = 9.81; // m/s^2
+  const H_MAX_CM = 30; // altura de la botella: escala vertical del dibujo
+
+  // ---------- Elementos DOM ----------
+  const hSlider = document.getElementById('hSlider');
+  const dSlider = document.getElementById('dSlider');
+  const hoSlider = document.getElementById('hoSlider');
+  const DSlider = document.getElementById('DSlider');
+  const cdSlider = document.getElementById('cdSlider');
+  const hVal = document.getElementById('hVal');
+  const dVal = document.getElementById('dVal');
+  const hoVal = document.getElementById('hoVal');
+  const DVal = document.getElementById('DVal');
+  const cdVal = document.getElementById('cdVal');
+  const paramSliders = [hSlider, dSlider, hoSlider, DSlider, cdSlider];
+  const btnStart = document.getElementById('btnStart');
+  const btnPause = document.getElementById('btnPause');
+  const btnReset = document.getElementById('btnReset');
+  const btnSave = document.getElementById('btnSave');
+  const stTime = document.getElementById('stTime');
+  const stH = document.getElementById('stH');
+  const stV = document.getElementById('stV');
+  const stQ = document.getElementById('stQ');
+  const stTeo = document.getElementById('stTeo');
+  const statusBadge = document.getElementById('statusBadge');
+  const tableBody = document.getElementById('tableBody');
+  const canvas = document.getElementById('canvas');
+  const ctx = canvas.getContext('2d');
+
+  // ---------- Estado de simulación ----------
+  let state = {
+    h0_cm: 18,
+    d_mm: 5,
+    ho_cm: 2,        // altura del orificio respecto a la base
+    D_cm: 8,         // diámetro interior del estanque (botella)
+    cd: 0.61,        // coeficiente de descarga del orificio
+    h_m: 0.18,      // altura actual en metros
+    elapsed: 0,      // segundos
+    running: false,
+    paused: false,
+    finished: false,
+    realTimeFinal: null,
+    lastFrame: null,
+    particles: []
+  };
+
+  let attemptCounter = 0;
+
+  function A_orifice(d_mm){
+    const r = (d_mm/1000)/2; // radio en metros
+    return Math.PI * r * r;
+  }
+
+  function A_tank(D_cm){
+    const r = (D_cm/100)/2; // radio en metros
+    return Math.PI * r * r;
+  }
+
+  // Columna de agua efectiva por encima del orificio (la que genera presión de salida)
+  function effectiveHead(h_m, ho_m){
+    const head = h_m - ho_m;
+    return head > 0 ? head : 0;
+  }
+
+  function theoreticalTime(h0_cm, d_mm, ho_cm, D_cm, cd){
+    const h0_m = h0_cm/100;
+    const ho_m = (ho_cm||0)/100;
+    const u0 = effectiveHead(h0_m, ho_m); // columna inicial por encima del orificio
+    const A0 = A_orifice(d_mm);
+    if(A0 <= 0) return Infinity;
+    if(u0 <= 0) return 0; // el orificio ya está por encima del agua: no drena
+    return (A_tank(D_cm)/(cd*A0)) * Math.sqrt(2*u0/G);
+  }
+
+  function outVelocity(h_m, ho_m){
+    const head = effectiveHead(h_m, ho_m||0);
+    return head > 0 ? Math.sqrt(2*G*head) : 0;
+  }
+
+  function flowRate(h_m, d_mm, ho_m, cd){
+    return cd * A_orifice(d_mm) * outVelocity(h_m, ho_m); // m^3/s
+  }
+
+  // ---------- UI Sync ----------
+  function syncInputsUI(){
+    hVal.textContent = hSlider.value + " cm";
+    dVal.textContent = dSlider.value + " mm";
+    hoVal.textContent = hoSlider.value + " cm";
+    DVal.textContent = DSlider.value + " cm";
+    cdVal.textContent = parseFloat(cdSlider.value).toFixed(2);
+  }
+
+  function setSlidersDisabled(disabled){
+    paramSliders.forEach(s => { s.disabled = disabled; });
+  }
+
+  function updateTeoDisplay(){
+    const t = theoreticalTime(parseFloat(hSlider.value), parseFloat(dSlider.value), parseFloat(hoSlider.value),
+                              parseFloat(DSlider.value), parseFloat(cdSlider.value));
+    if(parseFloat(hoSlider.value) >= parseFloat(hSlider.value)){
+      stTeo.textContent = "No drena (orificio ≥ h₀)";
+    } else {
+      stTeo.textContent = isFinite(t) ? t.toFixed(2) + " s" : "—";
+    }
+  }
+
+  hSlider.addEventListener('input', ()=>{
+    // el orificio no puede estar por encima de la altura inicial elegida
+    if(parseFloat(hoSlider.value) > parseFloat(hSlider.value)){
+      hoSlider.value = hSlider.value;
+    }
+    syncInputsUI();
+    if(!state.running){
+      state.h0_cm = parseFloat(hSlider.value);
+      state.ho_cm = parseFloat(hoSlider.value);
+      state.h_m = state.h0_cm/100;
+      updateReadouts();
+    }
+    updateTeoDisplay();
+  });
+  dSlider.addEventListener('input', ()=>{
+    syncInputsUI();
+    updateTeoDisplay();
+  });
+  DSlider.addEventListener('input', ()=>{
+    syncInputsUI();
+    if(!state.running) state.D_cm = parseFloat(DSlider.value);
+    updateTeoDisplay();
+  });
+  cdSlider.addEventListener('input', ()=>{
+    syncInputsUI();
+    updateTeoDisplay();
+  });
+  hoSlider.addEventListener('input', ()=>{
+    // el orificio no puede superar la altura inicial de agua
+    if(parseFloat(hoSlider.value) > parseFloat(hSlider.value)){
+      hoSlider.value = hSlider.value;
+    }
+    syncInputsUI();
+    if(!state.running){
+      state.ho_cm = parseFloat(hoSlider.value);
+      updateReadouts();
+    }
+    updateTeoDisplay();
+  });
+
+  function formatTime(sec){
+    const m = Math.floor(sec/60);
+    const s = Math.floor(sec%60);
+    const ms = Math.floor((sec - Math.floor(sec))*100);
+    return String(m).padStart(2,'0')+":"+String(s).padStart(2,'0')+"."+String(ms).padStart(2,'0');
+  }
+
+  function updateReadouts(){
+    stTime.textContent = formatTime(state.elapsed);
+    stH.textContent = (state.h_m*100).toFixed(1) + " cm";
+    const ho_m = state.ho_cm/100;
+    const v = outVelocity(state.h_m, ho_m);
+    stV.textContent = v.toFixed(3) + " m/s";
+    const q = flowRate(state.h_m, state.d_mm, ho_m, state.cd) * 1000; // L/s
+    stQ.textContent = q.toFixed(3) + " L/s";
+  }
+
+  function setStatus(text, cls){
+    statusBadge.textContent = text;
+    statusBadge.className = "badge " + cls;
+  }
+
+  // ---------- Botones ----------
+  btnStart.addEventListener('click', ()=>{
+    if(state.finished || (!state.running && !state.paused)){
+      // nuevo experimento desde cero
+      state.h0_cm = parseFloat(hSlider.value);
+      state.d_mm = parseFloat(dSlider.value);
+      state.ho_cm = parseFloat(hoSlider.value);
+      state.D_cm = parseFloat(DSlider.value);
+      state.cd = parseFloat(cdSlider.value);
+      state.h_m = state.h0_cm/100;
+      state.elapsed = 0;
+      state.finished = false;
+      state.realTimeFinal = null;
+      state.particles = [];
+      setSlidersDisabled(true);
+    }
+    state.running = true;
+    state.paused = false;
+    state.lastFrame = null;
+    setStatus("● Experimento en curso", "status-running");
+    updateTeoDisplay();
+  });
+
+  btnPause.addEventListener('click', ()=>{
+    if(state.running && !state.finished){
+      state.running = false;
+      state.paused = true;
+      setStatus("⏸ Pausado", "status-paused");
+    }
+  });
+
+  btnReset.addEventListener('click', ()=>{
+    state.running = false;
+    state.paused = false;
+    state.finished = false;
+    state.elapsed = 0;
+    state.h0_cm = parseFloat(hSlider.value);
+    state.d_mm = parseFloat(dSlider.value);
+    state.ho_cm = parseFloat(hoSlider.value);
+    state.D_cm = parseFloat(DSlider.value);
+    state.cd = parseFloat(cdSlider.value);
+    state.h_m = state.h0_cm/100;
+    state.realTimeFinal = null;
+    state.particles = [];
+    setSlidersDisabled(false);
+    setStatus("● Listo para iniciar", "status-idle");
+    updateReadouts();
+    updateTeoDisplay();
+  });
+
+  btnSave.addEventListener('click', ()=>{
+    if(state.realTimeFinal === null){
+      alert("Debes completar (o finalizar) un experimento antes de guardar el intento.");
+      return;
+    }
+    attemptCounter++;
+    const tTeo = theoreticalTime(state.h0_cm, state.d_mm, state.ho_cm, state.D_cm, state.cd);
+    const tReal = state.realTimeFinal;
+    const errorPct = isFinite(tTeo) && tTeo>0 ? Math.abs((tReal - tTeo)/tTeo)*100 : 0;
+
+    const row = document.createElement('tr');
+    let errClass = 'error-ok';
+    if(errorPct > 15) errClass = 'error-bad';
+    else if(errorPct > 5) errClass = 'error-warn';
+
+    row.innerHTML = `<td>${attemptCounter}</td>
+      <td>${state.h0_cm.toFixed(0)} <span style="color:var(--text-dim);font-size:10px;">(orif. ${state.ho_cm.toFixed(0)}cm)</span></td>
+      <td>${state.d_mm.toFixed(1)} <span style="color:var(--text-dim);font-size:10px;">(D ${state.D_cm} cm · C<sub>d</sub> ${state.cd.toFixed(2)})</span></td>
+      <td>${tReal.toFixed(2)}</td>
+      <td>${isFinite(tTeo)?tTeo.toFixed(2):'—'}</td>
+      <td class="${errClass}">${errorPct.toFixed(1)}%</td>`;
+
+    const emptyRow = tableBody.querySelector('.empty-row');
+    if(emptyRow) emptyRow.remove();
+    tableBody.prepend(row);
+  });
+
+  // ---------- Física: paso de integración (RK4 simplificado con sub-steps) ----------
+  function stepPhysics(dt){
+    const ho_m = state.ho_cm/100;
+    // El vaciado se detiene cuando el nivel llega a la altura del orificio:
+    // todo el fluido por debajo de esa cota queda retenido en el estanque.
+    if(state.h_m <= ho_m + 0.0001){
+      state.h_m = ho_m;
+      if(!state.finished){
+        state.finished = true;
+        state.running = false;
+        state.realTimeFinal = state.elapsed;
+        setSlidersDisabled(false);
+        setStatus(ho_m>0 ? "■ Vaciado detenido (nivel del orificio)" : "■ Vaciado completo", "status-finished");
+      }
+      return;
+    }
+    const A0 = A_orifice(state.d_mm);
+    // sub-stepping para estabilidad numérica
+    const subSteps = 8;
+    const sdt = dt/subSteps;
+    for(let i=0;i<subSteps;i++){
+      if(state.h_m <= ho_m){ state.h_m = ho_m; break; }
+      const head = Math.max(state.h_m - ho_m, 0);
+      const dhdt = -state.cd * (A0/A_tank(state.D_cm)) * Math.sqrt(2*G*head);
+      state.h_m += dhdt*sdt;
+      if(state.h_m < ho_m) state.h_m = ho_m;
+    }
+    state.elapsed += dt;
+  }
+
+  // ---------- Partículas del chorro ----------
+  function spawnParticles(dt, geo){
+    const ho_m = state.ho_cm/100;
+    if(state.h_m <= ho_m) return;
+    const v = outVelocity(state.h_m, ho_m);
+    if(v <= 0) return;
+    // tasa de emisión proporcional a velocidad
+    const rate = Math.min(6, 1 + v*3);
+    const n = Math.round(rate * dt * 60 / 16); // aprox por frame
+    for(let i=0;i<Math.max(1,Math.round(rate));i++){
+      state.particles.push({
+        x: geo.orificeX,
+        y: geo.orificeY,
+        vx: v * geo.pixelsPerMeter * 0.55, // salida horizontal (px/s)
+        vy: (Math.random()-0.5)*10,
+        life: 0,
+        maxLife: 1.6
+      });
+    }
+    if(state.particles.length > 260){
+      state.particles.splice(0, state.particles.length-260);
+    }
+  }
+
+  function updateParticles(dt, geo){
+    const g_px = G * geo.pixelsPerMeter; // gravedad en px/s^2
+    for(let i=state.particles.length-1;i>=0;i--){
+      const p = state.particles[i];
+      p.vy += g_px*dt;
+      p.x += p.vx*dt;
+      p.y += p.vy*dt;
+      p.life += dt;
+      if(p.life > p.maxLife || p.y > geo.floorY+20 || p.x > canvas.width-10){
+        state.particles.splice(i,1);
+      }
+    }
+  }
+
+  // ---------- Geometría del canvas ----------
+  function getGeometry(){
+    const W = canvas.width, H = canvas.height;
+    const tankW = 300;
+    const tankH = 380;
+    const tankX = 90;
+    const tankY = 90;
+    const wallThickness = 6;
+    // pixeles por metro de altura del estanque -> tankH representa la altura de la botella (H_MAX_CM)
+    const pixelsPerMeter = tankH / (H_MAX_CM/100);
+    // la altura del orificio (ho_cm) se mide desde la base del estanque hacia arriba
+    const ho_m = state.ho_cm/100;
+    let orificeY = tankY + tankH - (ho_m * pixelsPerMeter);
+    // margen mínimo para que el marco del orificio no se salga por arriba/abajo
+    orificeY = Math.min(Math.max(orificeY, tankY+12), tankY+tankH-12);
+    const orificeX = tankX + tankW;
+    const floorY = tankY + tankH + 10;
+    return {W,H,tankW,tankH,tankX,tankY,wallThickness,orificeY,orificeX,pixelsPerMeter,floorY};
+  }
+
+  // ---------- Dibujo ----------
+  function draw(){
+    const geo = getGeometry();
+    ctx.clearRect(0,0,canvas.width,canvas.height);
+
+    // fondo sutil
+    const bgGrad = ctx.createLinearGradient(0,0,0,canvas.height);
+    bgGrad.addColorStop(0,'#060c18');
+    bgGrad.addColorStop(1,'#0a1526');
+    ctx.fillStyle = bgGrad;
+    ctx.fillRect(0,0,canvas.width,canvas.height);
+
+    drawTank(geo);
+    drawWater(geo);
+    drawParticles(geo);
+    drawFloorSplash(geo);
+    drawLabels(geo);
+  }
+
+  function drawTank(geo){
+    const {tankX,tankY,tankW,tankH,orificeY} = geo;
+    // marcas graduadas (cada 5 cm)
+    ctx.save();
+    ctx.strokeStyle = 'rgba(147,162,194,0.25)';
+    ctx.fillStyle = 'rgba(147,162,194,0.55)';
+    ctx.font = '10px Segoe UI';
+    ctx.lineWidth = 1;
+    for(let cm=0; cm<=H_MAX_CM; cm+=5){
+      const y = tankY + tankH - (cm/H_MAX_CM)*tankH;
+      ctx.beginPath();
+      ctx.moveTo(tankX-8, y);
+      ctx.lineTo(tankX, y);
+      ctx.stroke();
+      ctx.textAlign = 'right';
+      ctx.fillText(cm+"", tankX-12, y+3);
+    }
+    ctx.restore();
+
+    // paredes del estanque (contenedor transparente)
+    ctx.save();
+    ctx.strokeStyle = '#5b6b95';
+    ctx.lineWidth = 4;
+    ctx.beginPath();
+    ctx.moveTo(tankX, tankY);
+    ctx.lineTo(tankX, tankY+tankH);
+    // pequeño hueco para el orificio
+    ctx.lineTo(tankX+tankW, tankY+tankH);
+    ctx.lineTo(tankX+tankW, orificeY+9);
+    ctx.moveTo(tankX+tankW, orificeY-9);
+    ctx.lineTo(tankX+tankW, tankY);
+    ctx.stroke();
+
+    // orificio (marco)
+    ctx.strokeStyle = '#f59e0b';
+    ctx.lineWidth = 3;
+    ctx.beginPath();
+    ctx.moveTo(tankX+tankW-2, orificeY-9);
+    ctx.lineTo(tankX+tankW+8, orificeY-9);
+    ctx.moveTo(tankX+tankW-2, orificeY+9);
+    ctx.lineTo(tankX+tankW+8, orificeY+9);
+    ctx.stroke();
+    ctx.restore();
+
+    // base
+    ctx.save();
+    ctx.strokeStyle = '#8fa0c9';
+    ctx.lineWidth = 2;
+    ctx.beginPath();
+    ctx.moveTo(tankX-20, geo.floorY);
+    ctx.lineTo(tankX+tankW+60, geo.floorY);
+    ctx.stroke();
+    ctx.restore();
+  }
+
+  function drawWater(geo){
+    const {tankX,tankY,tankW,tankH} = geo;
+    const waterHpx = (state.h_m) * geo.pixelsPerMeter;
+    const waterY = tankY + tankH - waterHpx;
+    if(waterHpx <= 0) return;
+
+    ctx.save();
+    ctx.beginPath();
+    ctx.rect(tankX+2, waterY, tankW-4, waterHpx);
+    ctx.clip();
+
+    const grad = ctx.createLinearGradient(0, waterY, 0, tankY+tankH);
+    grad.addColorStop(0, 'rgba(56,189,248,0.85)');
+    grad.addColorStop(1, 'rgba(14,116,144,0.95)');
+    ctx.fillStyle = grad;
+    ctx.fillRect(tankX, waterY, tankW, waterHpx+40);
+
+    // ondas en la superficie
+    const t = performance.now()/500;
+    ctx.strokeStyle = 'rgba(255,255,255,0.35)';
+    ctx.lineWidth = 2;
+    ctx.beginPath();
+    for(let x=0;x<=tankW;x+=6){
+      const yy = waterY + Math.sin(x*0.09 + t)*2.5;
+      if(x===0) ctx.moveTo(tankX+x, yy); else ctx.lineTo(tankX+x, yy);
+    }
+    ctx.stroke();
+    ctx.restore();
+  }
+
+  function drawParticles(geo){
+    ctx.save();
+    for(const p of state.particles){
+      const alpha = Math.max(0, 1 - p.life/p.maxLife);
+      ctx.fillStyle = `rgba(125,211,252,${alpha})`;
+      ctx.beginPath();
+      ctx.arc(p.x, p.y, 2.4, 0, Math.PI*2);
+      ctx.fill();
+    }
+    ctx.restore();
+  }
+
+  function drawFloorSplash(geo){
+    if(state.particles.length === 0 || state.h_m<=0) return;
+    ctx.save();
+    ctx.strokeStyle = 'rgba(125,211,252,0.25)';
+    ctx.lineWidth = 1.5;
+    ctx.beginPath();
+    ctx.ellipse(geo.orificeX + 70, geo.floorY, 40, 6, 0, 0, Math.PI*2);
+    ctx.stroke();
+    ctx.restore();
+  }
+
+  function drawLabels(geo){
+    ctx.save();
+    ctx.fillStyle = 'rgba(230,237,247,0.85)';
+    ctx.font = '12px Segoe UI';
+    ctx.textAlign='left';
+    ctx.fillText('Estanque (∅ '+state.D_cm+' cm)', geo.tankX, geo.tankY-14);
+    ctx.fillStyle = 'rgba(245,158,11,0.9)';
+    ctx.fillText('Orificio d = '+state.d_mm.toFixed(1)+' mm', geo.orificeX+14, geo.orificeY+4);
+    ctx.fillText('a '+state.ho_cm.toFixed(0)+' cm de la base', geo.orificeX+14, geo.orificeY+18);
+
+    // línea guía punteada indicando el nivel mínimo (agua retenida)
+    if(state.ho_cm > 0){
+      ctx.save();
+      ctx.setLineDash([5,4]);
+      ctx.strokeStyle = 'rgba(245,158,11,0.6)';
+      ctx.lineWidth = 1.5;
+      ctx.beginPath();
+      ctx.moveTo(geo.tankX, geo.orificeY);
+      ctx.lineTo(geo.tankX+geo.tankW, geo.orificeY);
+      ctx.stroke();
+      ctx.restore();
+    }
+    ctx.restore();
+  }
+
+  // ---------- Loop principal con Delta Time ----------
+  function loop(timestamp){
+    if(state.lastFrame === null) state.lastFrame = timestamp;
+    let dt = (timestamp - state.lastFrame)/1000;
+    state.lastFrame = timestamp;
+    dt = Math.min(dt, 0.05); // clamp para evitar saltos grandes (pestaña en background, etc.)
+
+    if(state.running && !state.finished){
+      stepPhysics(dt);
+      const geo = getGeometry();
+      spawnParticles(dt, geo);
+      updateParticles(dt, geo);
+      updateReadouts();
+    } else if(state.particles.length>0){
+      const geo = getGeometry();
+      updateParticles(dt, geo);
+    }
+
+    draw();
+    requestAnimationFrame(loop);
+  }
+
+  // ---------- Inicialización ----------
+  function init(){
+    syncInputsUI();
+    state.h0_cm = parseFloat(hSlider.value);
+    state.d_mm = parseFloat(dSlider.value);
+    state.ho_cm = parseFloat(hoSlider.value);
+    state.D_cm = parseFloat(DSlider.value);
+    state.cd = parseFloat(cdSlider.value);
+    state.h_m = state.h0_cm/100;
+    updateReadouts();
+    updateTeoDisplay();
+    draw();
+    requestAnimationFrame(loop);
+  }
+
+  init();
+})();
+</script>
+</body>
+</html>
+
