@@ -5,6 +5,7 @@ Funciona en el navegador de cualquier celular o computador. Proyecto de Innovaci
 Simulador original: Matías Alvayay.
 
 **Página publicada (versión 3.1):** https://mmedinacode.github.io/LabFluids/
+**Guía del estudiante v1.0 (borrador):** [docs/guia-estudiante.pdf](docs/guia-estudiante.pdf)
 Simulador original de Matías Alvayay: https://limatsio.github.io/FlujoAgua/
 
 ## Cómo se mide
@@ -29,7 +30,7 @@ Los intentos quedan etiquetados como «virtual», «video», «Arduino» o «CSV
 index.html            Web app LabFluids v3.1
 simulador.html        Simulador clásico v1.1
 arduino/labfluids/    Programa del Arduino (también para simular en Tinkercad)
-docs/                 Diagramas y capturas
+docs/                 Diagramas, capturas y guía del estudiante (guia-estudiante.pdf)
 datos/                CSV y un video sintético de prueba (marcados como simulados)
 ```
 
@@ -38,4 +39,4 @@ datos/                CSV y un video sintético de prueba (marcados como simulad
 - 30 intentos virtuales: todos terminaron con el sensor de contacto al llegar el agua al orificio; error máximo 3,3 %, CV máximo 2,4 %, C_d = 0,616 ± 0,007 (valor oculto: 0,615).
 - Video sintético con C_d = 0,62 (el agua deja de salir a los 69,8 s): la app midió C_d = 0,618 y t = 70,0 s.
 - Sin desplazamiento horizontal en una pantalla de 390 px.
-- Pendiente: probar en celulares Android e iPhone reales.
+- Probada en los celulares del equipo.
