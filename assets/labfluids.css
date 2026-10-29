@@ -1,0 +1,143 @@
+/* LabFluids · estilos compartidos por la portada y los 4 laboratorios.
+   Paleta amigable: fondo celeste suave (ni blanco puro ni oscuro), tarjetas blancas, un color por laboratorio. */
+:root{
+  --fondo:#e8f1f5; --fondo-2:#d9e9f0; --tarjeta:#ffffff; --tarjeta-2:#f4f9fb; --borde:#cfe0e8;
+  --texto:#1d3550; --tenue:#5b7286; --suave:#8aa0b2;
+  --agua:#2b8cc4; --agua-osc:#1b6a99; --agua-cla:#d6ecf8;
+  --acento:#ff8a5c; --sol:#ffc44d; --ok:#2fa56d; --error:#e0585b;
+  /* color de cada laboratorio (se cambia en <body class="lab-…">) */
+  --lab:#2b8cc4; --lab-osc:#1b6a99; --lab-cla:#d6ecf8;
+  --radio:18px; --sombra:0 6px 18px rgba(29,53,80,.08), 0 1px 3px rgba(29,53,80,.06);
+  color-scheme: light;
+}
+body.lab-vaciado{--lab:#2b8cc4; --lab-osc:#1b6a99; --lab-cla:#d6ecf8}
+body.lab-venturi{--lab:#13a092; --lab-osc:#0b7a6f; --lab-cla:#d3f1ec}
+body.lab-friccion{--lab:#ec7a45; --lab-osc:#c45a28; --lab-cla:#fde4d7}
+body.lab-agua{--lab:#3da55c; --lab-osc:#2a8045; --lab-cla:#daf1df}
+
+*{box-sizing:border-box}
+html,body{margin:0}
+body{
+  font-family:'Nunito','Segoe UI',Roboto,Arial,sans-serif; font-size:15.5px; line-height:1.5; color:var(--texto);
+  background:var(--fondo);
+  background-image:radial-gradient(900px 500px at 0% -10%, #f3f9fc 0%, transparent 60%),
+                   radial-gradient(900px 600px at 110% 0%, #dcedf5 0%, transparent 55%);
+  min-height:100vh;
+}
+a{color:var(--lab-osc)}
+h1,h2,h3{line-height:1.2}
+img,svg,canvas{max-width:100%}
+
+/* ---------- barra superior ---------- */
+.barra{position:sticky; top:0; z-index:20; display:flex; align-items:center; gap:12px; flex-wrap:wrap;
+  padding:10px 18px; background:rgba(255,255,255,.88); backdrop-filter:blur(8px); border-bottom:1px solid var(--borde)}
+.marca{display:flex; align-items:center; gap:10px; text-decoration:none; color:var(--texto)}
+.marca .gota{width:36px; height:36px; flex:none}
+.marca b{font-size:17px; font-weight:800; letter-spacing:-.2px}
+.marca small{display:block; font-size:12px; color:var(--tenue); font-weight:600}
+.volver{display:inline-flex; align-items:center; gap:6px; font-weight:700; font-size:14px; text-decoration:none; color:var(--tenue);
+  padding:6px 12px; border-radius:999px; border:1.5px solid var(--borde); background:var(--tarjeta)}
+.volver:hover{color:var(--lab-osc); border-color:var(--lab)}
+.titulo-lab{display:flex; align-items:center; gap:10px; min-width:0}
+.titulo-lab .icono{width:38px; height:38px; border-radius:12px; background:var(--lab-cla); display:flex; align-items:center; justify-content:center; flex:none}
+.titulo-lab h1{font-size:17px; margin:0; font-weight:800}
+.titulo-lab p{margin:0; font-size:12.5px; color:var(--tenue); font-weight:600}
+nav.pasos{display:flex; gap:6px; margin-left:auto; flex-wrap:wrap}
+nav.pasos button{border:1.5px solid var(--borde); background:var(--tarjeta); color:var(--tenue); border-radius:999px; padding:7px 14px;
+  font:inherit; font-size:14px; font-weight:800; cursor:pointer}
+nav.pasos button[aria-current="step"]{background:var(--lab); border-color:var(--lab); color:#fff}
+
+main{max-width:1180px; margin:0 auto; padding:18px 16px 40px}
+.paso{display:none} .paso.activo{display:block}
+.grid2{display:grid; grid-template-columns:repeat(auto-fit,minmax(min(100%,340px),1fr)); gap:16px; align-items:start}
+.grid-medir{display:grid; grid-template-columns:minmax(0,1.5fr) minmax(0,1fr); gap:16px; align-items:start}
+@media (max-width:820px){ .grid-medir{grid-template-columns:minmax(0,1fr)} }
+.grid3{display:grid; grid-template-columns:repeat(auto-fit,minmax(min(100%,260px),1fr)); gap:16px}
+
+/* ---------- tarjetas ---------- */
+.card{background:var(--tarjeta); border:1px solid var(--borde); border-radius:var(--radio); padding:18px; margin-bottom:16px; box-shadow:var(--sombra)}
+.card > h2{font-size:13px; text-transform:uppercase; letter-spacing:1px; color:var(--lab-osc); margin:0 0 12px; font-weight:800}
+.card > h2 .num{display:inline-flex; width:22px; height:22px; border-radius:50%; background:var(--lab); color:#fff; align-items:center; justify-content:center; font-size:12px; margin-right:6px}
+.intro{background:linear-gradient(135deg,var(--lab-cla),#fff 70%); border-color:transparent}
+.intro h2{font-size:21px !important; text-transform:none !important; letter-spacing:0 !important; color:var(--texto) !important}
+.intro p{margin:6px 0}
+
+/* ---------- campos ---------- */
+.campo{display:flex; justify-content:space-between; align-items:center; gap:10px; margin:10px 0}
+.campo label{font-size:14.5px; color:var(--tenue); font-weight:600}
+.campo input[type=number], .campo select{width:120px; padding:8px 10px; border:1.5px solid var(--borde); border-radius:10px; font:inherit; font-weight:700;
+  text-align:right; background:var(--tarjeta-2); color:var(--texto)}
+.deslizador{margin:12px 0 16px}
+.deslizador .cab{display:flex; justify-content:space-between; align-items:baseline; gap:10px}
+.deslizador label{font-size:14.5px; color:var(--tenue); font-weight:600}
+.deslizador output{font-weight:800; font-size:17px; color:var(--lab-osc); font-variant-numeric:tabular-nums}
+input[type=range]{width:100%; accent-color:var(--lab); height:28px}
+input:focus-visible, select:focus-visible, button:focus-visible, a:focus-visible, .opcion:focus-visible{outline:3px solid color-mix(in srgb, var(--lab) 55%, transparent); outline-offset:2px}
+.ayuda{font-size:13px; color:var(--tenue); margin:4px 0 0}
+
+/* botones de opción (elige uno) */
+.opciones{display:grid; grid-template-columns:repeat(auto-fit,minmax(min(100%,150px),1fr)); gap:8px}
+.opcion{border:2px solid var(--borde); border-radius:14px; padding:10px 12px; cursor:pointer; background:var(--tarjeta-2); text-align:left; font:inherit; color:inherit}
+.opcion b{display:block; font-size:14.5px}
+.opcion span{font-size:12.5px; color:var(--tenue)}
+.opcion[aria-pressed="true"]{border-color:var(--lab); background:var(--lab-cla)}
+
+/* ---------- botones ---------- */
+.btn{border:none; border-radius:12px; padding:11px 16px; font:inherit; font-size:14.5px; font-weight:800; cursor:pointer;
+  color:var(--texto); background:var(--fondo-2); display:inline-flex; align-items:center; gap:6px; text-decoration:none}
+.btn.pri{background:var(--lab); color:#fff}
+.btn.pri:hover{background:var(--lab-osc)}
+.btn.ok{background:var(--ok); color:#fff}
+.btn.sol{background:var(--sol); color:#3a2a00}
+.btn.peligro{background:transparent; color:var(--error); border:1.5px solid var(--error)}
+.btn.grande{font-size:17px; padding:15px 22px; border-radius:16px}
+.btn:disabled{opacity:.45; cursor:not-allowed}
+.btn:active{transform:scale(.97)}
+.fila-btn{display:flex; flex-wrap:wrap; gap:8px; margin-top:12px}
+
+/* ---------- avisos, chips, kpis ---------- */
+.aviso{border-radius:12px; padding:10px 13px; font-size:14px; margin:10px 0; background:var(--lab-cla); color:var(--texto)}
+.aviso.ok{background:#dff3e8} .aviso.warn{background:#fff1d0} .aviso.error{background:#fde1e1}
+.oculto{display:none !important}
+.chip{display:inline-block; font-size:12px; font-weight:800; border-radius:999px; padding:3px 10px; background:var(--lab-cla); color:var(--lab-osc)}
+.chip.sol{background:#fff1d0; color:#8a5a00} .chip.ok{background:#dff3e8; color:#1e7a4d} .chip.gris{background:var(--fondo-2); color:var(--tenue)}
+.kpis{display:grid; grid-template-columns:repeat(auto-fit,minmax(125px,1fr)); gap:10px}
+.kpi{background:var(--tarjeta-2); border:1px solid var(--borde); border-radius:14px; padding:9px 10px; text-align:center}
+.kpi small{display:block; font-size:11px; color:var(--tenue); text-transform:uppercase; letter-spacing:.5px; font-weight:700}
+.kpi b{display:block; font-size:21px; color:var(--lab-osc); font-variant-numeric:tabular-nums; margin-top:2px}
+.kpi.destacado{background:var(--lab); border-color:var(--lab)} .kpi.destacado small, .kpi.destacado b{color:#fff}
+
+/* ---------- lienzos y gráficos ---------- */
+.lienzo{position:relative; background:var(--tarjeta-2); border:1px solid var(--borde); border-radius:16px; padding:8px; overflow:hidden}
+.lienzo canvas{width:100%; height:auto; display:block; border-radius:12px; touch-action:manipulation}
+.grafico{position:relative; height:300px}
+.grafico.bajo{height:250px}
+
+/* ---------- tablas ---------- */
+.tabla-scroll{overflow-x:auto}
+table{border-collapse:collapse; width:100%; font-size:13.5px}
+th,td{padding:8px 7px; border-bottom:1px solid var(--borde); text-align:right; white-space:nowrap; font-variant-numeric:tabular-nums}
+th{color:var(--lab-osc); font-size:11.5px; text-transform:uppercase; letter-spacing:.3px}
+th:first-child, td:first-child{text-align:left}
+tr.excluido td{color:var(--suave); text-decoration:line-through}
+
+/* ---------- textos de fundamento ---------- */
+details.explica{background:var(--tarjeta-2); border:1px solid var(--borde); border-radius:14px; padding:10px 14px; margin:10px 0}
+details.explica summary{cursor:pointer; font-weight:800; color:var(--lab-osc)}
+.formula{font-family:Cambria,'Cambria Math',Georgia,serif; font-size:18px; text-align:center; margin:10px 0; padding:10px; background:#fff; border-radius:12px; border:1px dashed var(--borde)}
+ol.preguntas li, ul.lista li{margin:6px 0}
+
+footer{text-align:center; font-size:12.5px; color:var(--tenue); padding:10px 16px 30px}
+footer a{color:var(--tenue)}
+
+@media (max-width:560px){
+  body{font-size:15px}
+  .barra{padding:9px 12px; gap:8px}
+  nav.pasos{margin-left:0; width:100%}
+  nav.pasos button{flex:1; padding:7px 6px; font-size:13px}
+  main{padding:12px 10px 32px}
+  .card{padding:15px 13px}
+  .campo input[type=number], .campo select{width:100px}
+  .grafico{height:240px}
+}
+@media (prefers-reduced-motion: reduce){ .btn:active{transform:none} *{scroll-behavior:auto !important} }

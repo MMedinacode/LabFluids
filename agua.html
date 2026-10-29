@@ -1,0 +1,386 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Agua en casa · LabFluids</title>
+<meta name="description" content="Mide el caudal de tu ducha o llave con una botella y un cronómetro, y calcula cuántos litros y cuánta plata gastas al mes.">
+<link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 32 32'%3E%3Cpath d='M16 3C11 10 7 14.5 7 19a9 9 0 0 0 18 0c0-4.5-4-9-9-16z' fill='%233da55c'/%3E%3C/svg%3E">
+<link rel="preconnect" href="https://fonts.googleapis.com"><link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Nunito:wght@500;600;700;800;900&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="assets/labfluids.css">
+<style>
+  .artefactos{display:grid; grid-template-columns:repeat(4, minmax(0,1fr)); gap:10px}
+  .artefactos .opcion{text-align:center; padding:14px 8px}
+  .artefactos .emoji{font-size:34px; display:block; line-height:1.1}
+  .cronometro{font-size:58px; font-weight:900; text-align:center; font-variant-numeric:tabular-nums; color:var(--lab-osc); letter-spacing:-1px; margin:6px 0}
+  .cronometro small{font-size:22px; color:var(--tenue)}
+  #btnCrono{width:100%; font-size:22px; padding:20px}
+  #btnCrono.corriendo{background:var(--error); border-color:var(--error)}
+  .tiempos{display:flex; flex-wrap:wrap; gap:8px; margin:12px 0 4px; min-height:34px}
+  .tiempos span{background:var(--lab-cla); color:var(--lab-osc); font-weight:800; border-radius:999px; padding:5px 8px 5px 14px; display:inline-flex; align-items:center; gap:6px}
+  .tiempos button{border:0; background:rgba(255,255,255,.7); color:var(--lab-osc); width:22px; height:22px; border-radius:50%; cursor:pointer; font-weight:900; line-height:1}
+  .grande-num{font-size:44px; font-weight:900; color:var(--lab-osc); line-height:1.05}
+  .grande-num small{font-size:18px; color:var(--tenue); font-weight:800}
+  .equivale{display:flex; flex-wrap:wrap; gap:6px; margin-top:8px}
+  .equivale span{font-size:20px}
+  .resumen{display:grid; grid-template-columns:repeat(4, minmax(0,1fr)); gap:12px}
+  .resumen .card{margin:0; text-align:center}
+  .resumen small{display:block; font-weight:800; font-size:12px; letter-spacing:.4px; text-transform:uppercase; color:var(--tenue)}
+  .resumen b{display:block; font-size:30px; color:var(--lab-osc); margin:4px 0 0}
+  .resumen .card.verde{background:var(--lab); border-color:var(--lab)} .resumen .card.verde small, .resumen .card.verde b{color:#fff}
+  .barras{display:grid; gap:10px; margin-top:10px}
+  .barras .fila{display:grid; grid-template-columns:120px 1fr 90px; gap:10px; align-items:center; font-weight:700; font-size:14px}
+  .barras .pista{background:var(--fondo-2); border-radius:999px; height:22px; overflow:hidden}
+  .barras .pista i{display:block; height:100%; border-radius:999px; background:var(--lab); transition:width .4s}
+  .barras .fila.ahorro .pista i{background:var(--sol)}
+  .contador-gotas{width:140px; height:140px; border-radius:50%; font-size:16px; font-weight:900; display:flex; flex-direction:column; align-items:center; justify-content:center; margin:6px auto; padding:0}
+  .contador-gotas b{font-size:36px; display:block}
+  .tips li{margin:8px 0}
+  .paso-n{display:inline-flex; width:28px; height:28px; border-radius:50%; background:var(--lab); color:#fff; align-items:center; justify-content:center; font-weight:900; margin-right:8px; flex:none}
+  .instruccion{display:flex; align-items:flex-start; gap:4px; margin:10px 0}
+  @media (max-width:700px){
+    .artefactos{grid-template-columns:repeat(2, minmax(0,1fr))}
+    .resumen{grid-template-columns:repeat(2, minmax(0,1fr))}
+    .resumen b{font-size:24px}
+    .barras .fila{grid-template-columns:90px 1fr 76px; font-size:13px}
+    .cronometro{font-size:48px}
+  }
+</style>
+</head>
+<body class="lab-agua">
+<header class="barra">
+  <a class="volver" href="./">← Inicio</a>
+  <div class="titulo-lab">
+    <span class="icono"><svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="#2a8045" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M4 9h9a3 3 0 0 1 3 3v1"/><path d="M8 9V6h3"/><path d="M16 16v1M16 20v.5M13 18v.5M19 18v.5"/></svg></span>
+    <div><h1>Agua en casa</h1><p>¿Cuánta agua y cuánta plata se va por tu llave?</p></div>
+  </div>
+  <nav class="pasos" aria-label="Pasos">
+    <button data-ir="paso-medir" aria-current="step">1 Medir</button>
+    <button data-ir="paso-uso">2 Tu uso</button>
+    <button data-ir="paso-result">3 Resultado</button>
+  </nav>
+</header>
+
+<main>
+<!-- ============ PASO 1: medir el caudal ============ -->
+<section class="paso activo" id="paso-medir">
+  <div class="card intro">
+    <h2>Solo necesitas un envase y este celular</h2>
+    <p>Vas a medir cuántos <b>litros por minuto</b> salen de una llave de tu casa. A eso se le llama <b>caudal</b>. Después calculamos cuánto gastas al mes, en litros y en pesos.</p>
+    <details class="explica">
+      <summary>¿Qué tiene que ver esto con la física?</summary>
+      <p>El caudal es el volumen de agua que pasa en un tiempo. Si un envase de 1,5 litros se llena en 9 segundos, el caudal es:</p>
+      <div class="formula">Q = volumen / tiempo = 1,5 L / 9 s = 0,167 L/s = 10 L/min</div>
+      <p>Es la misma idea que usan los otros laboratorios de LabFluids (Torricelli, Venturi y tuberías), aplicada a tu casa.</p>
+    </details>
+  </div>
+
+  <div class="card">
+    <h2><span class="num">1</span>¿Qué vas a medir?</h2>
+    <div class="opciones artefactos" id="artefactos" role="group" aria-label="Artefacto"></div>
+  </div>
+
+  <div class="grid2">
+    <div class="card">
+      <h2><span class="num">2</span>¿Con qué envase?</h2>
+      <div class="opciones" id="envases" role="group" aria-label="Envase" style="grid-template-columns:repeat(2,minmax(0,1fr))"></div>
+      <div class="campo oculto" id="campoOtro" style="margin-top:10px"><label for="litrosOtro">Litros de tu envase</label><input type="number" id="litrosOtro" min="0.2" max="50" step="0.1" value="2" inputmode="decimal"></div>
+      <p class="ayuda" id="consejoEnvase" style="margin-top:10px"></p>
+    </div>
+    <div class="card">
+      <h2><span class="num">3</span>Mide el tiempo de llenado</h2>
+      <div class="instruccion"><span class="paso-n">a</span><span>Abre la llave <b>como la usas normalmente</b> (no más, no menos).</span></div>
+      <div class="instruccion"><span class="paso-n">b</span><span>Pon el envase bajo el chorro y aprieta <b>Iniciar</b> al mismo tiempo.</span></div>
+      <div class="instruccion"><span class="paso-n">c</span><span>Cuando se llene, aprieta <b>Detener</b>. Repite <b>3 veces</b>.</span></div>
+      <div class="cronometro" id="crono" aria-live="off">0,0 <small>s</small></div>
+      <button class="btn pri" id="btnCrono">▶ Iniciar</button>
+      <div class="tiempos" id="tiempos" aria-live="polite"></div>
+      <details class="explica" style="margin-top:6px">
+        <summary>¿Ya mediste con otro reloj? Escribe los segundos</summary>
+        <div class="campo"><label for="segManual">Segundos</label><input type="number" id="segManual" min="0.5" max="600" step="0.1" inputmode="decimal" placeholder="ej: 9,5"></div>
+        <button class="btn" id="btnManual">Agregar tiempo</button>
+      </details>
+    </div>
+  </div>
+
+  <div class="card" id="cajaCaudal">
+    <h2>Tu caudal</h2>
+    <div id="sinTiempos" class="aviso">Cuando registres tu primer tiempo, aquí aparece cuánta agua sale por minuto.</div>
+    <div id="conTiempos" class="oculto">
+      <div class="grande-num"><span id="qGrande">—</span> <small>litros por minuto</small></div>
+      <p class="ayuda" id="qDetalle"></p>
+      <div class="aviso warn oculto" id="avisoRapido">El envase se llenó muy rápido (menos de 5 s). Con tiempos tan cortos, la demora de tu dedo en apretar el botón pesa mucho. Si puedes, usa un envase más grande.</div>
+      <div class="aviso warn oculto" id="avisoDispar"></div>
+    </div>
+    <div class="fila-btn">
+      <button class="btn pri grande" data-ir="paso-uso">Siguiente: tu uso →</button>
+      <button class="btn" id="btnEjemplo">Probar con un ejemplo</button>
+    </div>
+    <p class="ayuda">El ejemplo usa tiempos inventados (botella de 1,5 L en 9 s) solo para mostrar cómo funciona.</p>
+  </div>
+</section>
+
+<!-- ============ PASO 2: uso y boleta ============ -->
+<section class="paso" id="paso-uso">
+  <div class="grid2">
+    <div class="card">
+      <h2><span class="num">1</span>¿Cuánto la usan en tu casa?</h2>
+      <div class="deslizador">
+        <div class="cab"><label for="minutos" id="lblMinutos">Minutos cada vez</label><output id="outMin">—</output></div>
+        <input type="range" id="minutos" min="0.5" max="30" step="0.5" value="8">
+      </div>
+      <div class="deslizador">
+        <div class="cab"><label for="veces" id="lblVeces">Veces al día (sumando a todas las personas)</label><output id="outVeces">—</output></div>
+        <input type="range" id="veces" min="1" max="20" step="1" value="3">
+      </div>
+      <div class="deslizador">
+        <div class="cab"><label for="dias">Días al mes que se usa</label><output id="outDias">—</output></div>
+        <input type="range" id="dias" min="1" max="31" step="1" value="30">
+      </div>
+      <p class="ayuda" id="txtUso"></p>
+    </div>
+
+    <div class="card">
+      <h2><span class="num">2</span>Tu boleta de agua <span class="chip gris">opcional</span></h2>
+      <p style="margin-top:0">Para saber cuánta <b>plata</b> es, toma tu última boleta (Aguas Andinas, Esval, Essbio, Nuevosur u otra) y busca dos números:</p>
+      <div class="campo"><label for="totalBoleta">Total a pagar ($)</label><input type="number" id="totalBoleta" min="0" step="1" inputmode="numeric" placeholder="ej: 18990"></div>
+      <div class="campo"><label for="m3Boleta">Consumo del mes (m³)</label><input type="number" id="m3Boleta" min="0" step="0.1" inputmode="decimal" placeholder="ej: 15"></div>
+      <p class="ayuda">1 m³ (metro cúbico) son 1.000 litros. El consumo aparece en la boleta como «consumo» o «m³ facturados».</p>
+      <details class="explica">
+        <summary>¿Por qué no usamos un precio fijo?</summary>
+        <p>Cada empresa sanitaria y cada comuna tiene su propia tarifa, y cambia con el tiempo. Además, en algunas zonas el agua que se gasta sobre cierto límite en verano se cobra más cara («sobreconsumo»). Por eso es más exacto usar <b>tu</b> boleta.</p>
+        <p>Dividir el total por los m³ da un precio promedio por m³ que incluye el cargo fijo. Si quieres más precisión, suma solo los cargos variables por m³ que aparecen en el detalle (agua potable, alcantarillado y tratamiento) y escríbelos aquí:</p>
+        <div class="campo"><label for="precioM3">Precio por m³ ($)</label><input type="number" id="precioM3" min="0" step="1" inputmode="numeric" placeholder="opcional"></div>
+      </details>
+      <p class="ayuda" id="txtPrecio"></p>
+    </div>
+  </div>
+  <div class="fila-btn"><button class="btn pri grande" data-ir="paso-result">Ver mi resultado →</button></div>
+</section>
+
+<!-- ============ PASO 3: resultado ============ -->
+<section class="paso" id="paso-result">
+  <div id="rSin" class="card aviso warn">Primero mide tu caudal en el paso 1 (o aprieta «Probar con un ejemplo»).</div>
+  <div id="rCon" class="oculto">
+    <div class="resumen">
+      <div class="card"><small>Caudal</small><b id="rQ">—</b><span class="ayuda">litros por minuto</span></div>
+      <div class="card"><small id="rVezTit">Cada vez</small><b id="rVez">—</b><span class="ayuda">litros</span></div>
+      <div class="card"><small>Al mes</small><b id="rMes">—</b><span class="ayuda" id="rMesM3">litros</span></div>
+      <div class="card verde"><small>Plata al mes</small><b id="rPlata">—</b><span class="ayuda" style="color:#fff" id="rPlataTxt">aprox.</span></div>
+    </div>
+
+    <div class="grid2" style="margin-top:14px">
+      <div class="card">
+        <h2>¿A cuánto equivale?</h2>
+        <p style="margin-top:0" id="rEquiv"></p>
+        <div class="equivale" id="rIconos" aria-hidden="true"></div>
+        <p class="ayuda" id="rBoletaPct"></p>
+      </div>
+      <div class="card">
+        <h2>¿Y si te demoras un poco menos?</h2>
+        <div class="deslizador">
+          <div class="cab"><label for="menos">Minutos menos cada vez</label><output id="outMenos">—</output></div>
+          <input type="range" id="menos" min="0" max="10" step="0.5" value="2">
+        </div>
+        <div class="barras" id="barras"></div>
+        <p id="rAhorro" style="margin-bottom:0"></p>
+      </div>
+    </div>
+  </div>
+
+  <div class="grid2">
+    <div class="card">
+      <h2>¿Una llave que gotea?</h2>
+      <p style="margin-top:0">Pon el celular al lado y aprieta el botón <b>cada vez que caiga una gota</b> durante <b>1 minuto</b>.</p>
+      <button class="btn pri contador-gotas" id="btnGota"><b id="nGotas">0</b>gotas · tocar</button>
+      <p style="text-align:center; margin:4px 0" id="tGotas" class="ayuda">El minuto parte con la primera gota.</p>
+      <div class="campo"><label for="gotasMin">O escribe: gotas por minuto</label><input type="number" id="gotasMin" min="0" max="300" step="1" inputmode="numeric" placeholder="ej: 30"></div>
+      <div class="aviso oculto" id="rGoteo"></div>
+      <p class="ayuda">Usamos que una gota tiene unos 0,05 mL (aproximado: depende de la llave).</p>
+    </div>
+    <div class="card">
+      <h2>Ideas simples para ahorrar</h2>
+      <ul class="tips">
+        <li>🚿 <b>Duchas más cortas:</b> usa la calculadora de arriba para ver cuánto ahorras con cada minuto.</li>
+        <li>🪥 <b>Cierra la llave</b> mientras te lavas los dientes o te enjabonas.</li>
+        <li>🔧 <b>Arregla las goteras:</b> mide con el contador de gotas cuánto se pierde en un mes.</li>
+        <li>🚽 <b>Revisa el WC:</b> echa unas gotas de colorante al estanque; si aparece color en la taza sin tirar la cadena, hay una fuga.</li>
+        <li>🌱 <b>Riega temprano o de noche</b>, cuando se evapora menos agua.</li>
+        <li>🔁 <b>Mide de nuevo</b> después de un cambio (por ejemplo, un aireador o una ducha nueva) y compara.</li>
+      </ul>
+    </div>
+  </div>
+  <div class="fila-btn">
+    <button class="btn" data-ir="paso-medir">← Medir otra llave</button>
+    <a class="btn" href="./">Ver los otros laboratorios</a>
+  </div>
+</section>
+</main>
+<footer>LabFluids · Agua en casa · <a href="docs/guia-agua.pdf" target="_blank" rel="noopener">Guía paso a paso (PDF)</a> · <a href="./">Otros laboratorios</a> · Los KAMIKAZES · Universidad Mayor</footer>
+
+<script src="assets/fisica.js"></script>
+<script src="assets/comun.js"></script>
+<script>
+const { $, num, entero } = LF;
+// valores iniciales de uso por artefacto (son solo un punto de partida: cada persona los ajusta)
+const ARTEFACTOS = {
+  ducha:    { nombre: 'Ducha',     emoji: '🚿', vez: 'Cada ducha',   min: 8,  veces: 3, dias: 30, lblMin: 'Minutos por ducha', lblVeces: 'Duchas al día (todas las personas)', envase: 'balde10' },
+  lavamanos:{ nombre: 'Lavamanos', emoji: '🚰', vez: 'Cada uso',     min: 1,  veces: 8, dias: 30, lblMin: 'Minutos con la llave abierta cada vez', lblVeces: 'Veces al día (todas las personas)', envase: 'b15' },
+  cocina:   { nombre: 'Lavaplatos', emoji: '🍽️', vez: 'Cada lavado', min: 10, veces: 2, dias: 30, lblMin: 'Minutos con la llave abierta por lavado', lblVeces: 'Lavados al día', envase: 'b15' },
+  manguera: { nombre: 'Manguera',  emoji: '🌱', vez: 'Cada riego',   min: 20, veces: 1, dias: 8,  lblMin: 'Minutos por riego', lblVeces: 'Riegos al día', envase: 'balde10' },
+};
+const ENVASES = { b1: ['Botella 1 L', 1], b15: ['Botella 1,5 L', 1.5], bidon5: ['Bidón 5 L', 5], balde10: ['Balde 10 L', 10], otro: ['Otro', null] };
+const estado = { art: 'ducha', envase: 'balde10', tiempos: [], ejemplo: false };
+
+/* ---------- paso 1 ---------- */
+$('artefactos').innerHTML = Object.entries(ARTEFACTOS).map(([id, a]) => `<button class="opcion" data-a="${id}" aria-pressed="${id === estado.art}"><span class="emoji">${a.emoji}</span><b>${a.nombre}</b></button>`).join('');
+$('envases').innerHTML = Object.entries(ENVASES).map(([id, e]) => `<button class="opcion" data-e="${id}" aria-pressed="${id === estado.envase}"><b>${e[0]}</b></button>`).join('');
+const litrosEnvase = () => estado.envase === 'otro' ? Math.max(0, Number($('litrosOtro').value) || 0) : ENVASES[estado.envase][1];
+
+function elegirArtefacto(id) {
+  estado.art = id; const a = ARTEFACTOS[id];
+  document.querySelectorAll('#artefactos .opcion').forEach(b => b.setAttribute('aria-pressed', b.dataset.a === id));
+  $('minutos').value = a.min; $('veces').value = a.veces; $('dias').value = a.dias;
+  $('lblMinutos').textContent = a.lblMin; $('lblVeces').textContent = a.lblVeces;
+  $('consejoEnvase').textContent = id === 'ducha' || id === 'manguera'
+    ? 'Consejo: para la ducha o la manguera usa un balde, porque se llena más lento y la medición es más exacta.'
+    : 'Consejo: elige un envase que tarde al menos 5 segundos en llenarse.';
+  estado.tiempos = [];                                    // las mediciones eran de otra llave estado.ejemplo = false; pintarTiempos(); usoTexto();
+}
+function elegirEnvase(id) {
+  estado.envase = id;
+  document.querySelectorAll('#envases .opcion').forEach(b => b.setAttribute('aria-pressed', b.dataset.e === id));
+  $('campoOtro').classList.toggle('oculto', id !== 'otro');
+  pintarTiempos();
+}
+document.querySelectorAll('#artefactos .opcion').forEach(b => b.addEventListener('click', () => elegirArtefacto(b.dataset.a)));
+document.querySelectorAll('#envases .opcion').forEach(b => b.addEventListener('click', () => elegirEnvase(b.dataset.e)));
+$('litrosOtro').addEventListener('input', pintarTiempos);
+
+// cronómetro grande
+let inicio = null, intervalo = null;
+$('btnCrono').addEventListener('click', () => {
+  if (inicio === null) {
+    inicio = performance.now();
+    $('btnCrono').textContent = '■ Detener'; $('btnCrono').classList.add('corriendo');
+    intervalo = setInterval(() => { $('crono').innerHTML = num((performance.now() - inicio) / 1000, 1) + ' <small>s</small>'; }, 100);
+  } else {
+    const s = (performance.now() - inicio) / 1000;
+    clearInterval(intervalo); inicio = null;
+    $('btnCrono').textContent = '▶ Iniciar'; $('btnCrono').classList.remove('corriendo');
+    $('crono').innerHTML = num(s, 1) + ' <small>s</small>';
+    agregarTiempo(s);
+  }
+});
+$('btnManual').addEventListener('click', () => { const s = Number(String($('segManual').value).replace(',', '.')); if (s > 0) { agregarTiempo(s); $('segManual').value = ''; } });
+function agregarTiempo(s) {
+  if (s < 0.3) return;                                   // un doble toque sin querer
+  if (estado.ejemplo) { estado.tiempos = []; estado.ejemplo = false; }
+  estado.tiempos.push(s); pintarTiempos();
+}
+$('btnEjemplo').addEventListener('click', () => {
+  elegirArtefacto('ducha'); elegirEnvase('b15');
+  estado.tiempos = [9.2, 8.8, 9.0]; estado.ejemplo = true; pintarTiempos();
+});
+
+function caudal() {                                       // L/min promedio de las mediciones
+  const L = litrosEnvase();
+  if (!estado.tiempos.length || !L) return NaN;
+  return Fisica.media(estado.tiempos.map(s => Fisica.caudalLmin(L, s)));
+}
+function pintarTiempos() {
+  $('tiempos').innerHTML = estado.tiempos.map((s, i) => `<span>${i + 1}ª: ${num(s, 1)} s <button aria-label="Borrar medición ${i + 1}" data-i="${i}">×</button></span>`).join('')
+    + (estado.ejemplo ? '<span class="chip sol" style="padding:5px 12px">Ejemplo</span>' : '');
+  $('tiempos').querySelectorAll('button').forEach(b => b.addEventListener('click', () => { estado.tiempos.splice(Number(b.dataset.i), 1); pintarTiempos(); }));
+  const Q = caudal(), hay = Number.isFinite(Q);
+  $('sinTiempos').classList.toggle('oculto', hay); $('conTiempos').classList.toggle('oculto', !hay);
+  if (!hay) return;
+  const n = estado.tiempos.length, falta = Math.max(0, 3 - n);
+  $('qGrande').textContent = num(Q, 1);
+  $('qDetalle').innerHTML = `${ARTEFACTOS[estado.art].nombre} · ${n} ${n > 1 ? 'mediciones' : 'medición'} con ${num(litrosEnvase(), 1)} L` + (falta ? ` · <b>te falta${falta > 1 ? 'n' : ''} ${falta}</b> para tener 3` : ' · ¡listo!');
+  $('avisoRapido').classList.toggle('oculto', Math.min(...estado.tiempos) >= 5);
+  // si una medición se aleja mucho del resto, probablemente hubo un error al apretar el botón
+  const ts = estado.tiempos, m = Fisica.media(ts), dif = n > 1 ? Math.max(...ts.map(t => Math.abs(t - m) / m)) : 0;
+  $('avisoDispar').classList.toggle('oculto', dif < 0.15);
+  $('avisoDispar').textContent = 'Una de tus mediciones es bastante distinta de las otras (más de 15 %). Revisa si apretaste a tiempo o si cambió la llave; puedes borrarla con la ×.';
+}
+
+/* ---------- paso 2 ---------- */
+function usoTexto() {
+  const mi = Number($('minutos').value), ve = Number($('veces').value), di = Number($('dias').value);
+  $('outMin').textContent = num(mi, mi % 1 ? 1 : 0) + ' min'; $('outVeces').textContent = ve; $('outDias').textContent = di;
+  $('txtUso').textContent = `En total: ${num(mi * ve * di / 60, 1)} horas al mes con la llave abierta.`;
+  const p = precio();
+  $('txtPrecio').innerHTML = Number.isFinite(p) ? `Precio que usaremos: <b>$${entero(p)} por m³</b> (${num(p / 1000, 1)} pesos por litro).` : '';
+}
+['minutos', 'veces', 'dias', 'totalBoleta', 'm3Boleta', 'precioM3'].forEach(id => $(id).addEventListener('input', usoTexto));
+function precio() {                                       // pesos por m³
+  const pm = Number($('precioM3').value), tot = Number($('totalBoleta').value), m3 = Number($('m3Boleta').value);
+  if (pm > 0) return pm;
+  if (tot > 0 && m3 > 0) return tot / m3;
+  return NaN;
+}
+
+/* ---------- paso 3 ---------- */
+function resultado() {
+  const Q = caudal(), hay = Number.isFinite(Q);
+  $('rSin').classList.toggle('oculto', hay); $('rCon').classList.toggle('oculto', !hay);
+  if (!hay) return;
+  const a = ARTEFACTOS[estado.art], mi = Number($('minutos').value), ve = Number($('veces').value), di = Number($('dias').value), p = precio();
+  const vez = Q * mi, mes = vez * ve * di, plata = mes / 1000 * p;
+  $('rQ').textContent = num(Q, 1); $('rVezTit').textContent = a.vez; $('rVez').textContent = entero(vez);
+  $('rMes').textContent = entero(mes); $('rMesM3').textContent = `litros (${num(mes / 1000, 1)} m³)`;
+  $('rPlata').textContent = Number.isFinite(p) ? '$' + entero(plata) : '—';
+  $('rPlataTxt').textContent = Number.isFinite(p) ? 'aprox., con tu boleta' : 'agrega tu boleta en el paso 2';
+  // equivalencias fáciles de imaginar
+  const botellas = vez / 1.5, baldes = mes / 10;
+  $('rEquiv').innerHTML = `${a.vez} gasta lo mismo que <b>${entero(botellas)} botellas de 1,5 L</b>. En un mes, son <b>${entero(baldes)} baldes de 10 litros</b>.`;
+  $('rIconos').innerHTML = '<span>🧴</span>'.repeat(Math.min(40, Math.round(botellas))) + (botellas > 40 ? ' <b>…</b>' : '');
+  const m3b = Number($('m3Boleta').value);
+  $('rBoletaPct').textContent = m3b > 0 ? `Esto es cerca del ${num(Math.min(100, mes / 1000 / m3b * 100), 0)} % de los ${num(m3b, 1)} m³ de tu boleta.` : '';
+  ahorro();
+  if (estado.ejemplo) $('rPlataTxt').textContent += ' · ejemplo';
+}
+function ahorro() {
+  const Q = caudal(); if (!Number.isFinite(Q)) return;
+  const mi = Number($('minutos').value), ve = Number($('veces').value), di = Number($('dias').value), p = precio();
+  const menos = Math.min(Number($('menos').value), mi);
+  $('outMenos').textContent = num(menos, menos % 1 ? 1 : 0) + ' min';
+  const ahora = Q * mi * ve * di, despues = Q * (mi - menos) * ve * di, ah = ahora - despues;
+  const fila = (t, v, cls = '') => `<div class="fila ${cls}"><span>${t}</span><div class="pista"><i style="width:${ahora ? v / ahora * 100 : 0}%"></i></div><span>${entero(v)} L</span></div>`;
+  $('barras').innerHTML = fila('Hoy', ahora) + fila(`Con ${num(mi - menos, (mi - menos) % 1 ? 1 : 0)} min`, despues) + fila('Ahorro', ah, 'ahorro');
+  $('rAhorro').innerHTML = menos > 0
+    ? `Ahorrarías <b>${entero(ah)} litros al mes</b>` + (Number.isFinite(p) ? ` y cerca de <b>$${entero(ah / 1000 * p)}</b> al mes (unos $${entero(ah / 1000 * p * 12)} al año).` : '.')
+    : 'Mueve el deslizador para ver cuánto ahorras.';
+}
+$('menos').addEventListener('input', ahorro);
+
+// contador de gotas: un minuto desde la primera gota
+let gotas = 0, tGota = null, relojGota = null;
+$('btnGota').addEventListener('click', () => {
+  if (tGota === null) {
+    gotas = 0; tGota = performance.now();
+    relojGota = setInterval(() => {
+      const s = (performance.now() - tGota) / 1000;
+      $('tGotas').textContent = `Quedan ${Math.max(0, Math.ceil(60 - s))} s`;
+      if (s >= 60) { clearInterval(relojGota); tGota = null; $('tGotas').textContent = 'Listo. Toca de nuevo para medir otra vez.'; $('gotasMin').value = gotas; goteo(); }
+    }, 200);
+  }
+  gotas++; $('nGotas').textContent = gotas;
+});
+$('gotasMin').addEventListener('input', goteo);
+function goteo() {
+  const g = Number($('gotasMin').value), p = precio();
+  if (!(g > 0)) { $('rGoteo').classList.add('oculto'); return; }
+  const dia = Fisica.litrosPorGoteo(g, 1440), mes = dia * 30;
+  $('rGoteo').innerHTML = `Con ${entero(g)} gotas por minuto se pierden <b>${num(dia, 1)} litros al día</b> y <b>${entero(mes)} litros al mes</b>`
+    + (Number.isFinite(p) ? ` (cerca de $${entero(mes / 1000 * p)} al mes).` : '.') + ` Es como ${num(mes / 1.5, 0)} botellas de 1,5 L.`;
+  $('rGoteo').classList.remove('oculto');
+}
+
+elegirArtefacto('ducha'); usoTexto();
+LF.iniciarPasos(id => { if (id === 'paso-uso') usoTexto(); if (id === 'paso-result') { resultado(); goteo(); } });
+</script>
+</body>
+</html>

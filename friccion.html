@@ -1,0 +1,428 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Fricción en tuberías · LabFluids</title>
+<meta name="description" content="Laboratorio virtual de pérdidas por fricción: ecuación de Darcy–Weisbach, número de Reynolds, flujo laminar y turbulento con distintos fluidos.">
+<link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 32 32'%3E%3Cpath d='M16 3C11 10 7 14.5 7 19a9 9 0 0 0 18 0c0-4.5-4-9-9-16z' fill='%23ec7a45'/%3E%3C/svg%3E">
+<link rel="preconnect" href="https://fonts.googleapis.com"><link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Nunito:wght@500;600;700;800;900&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="assets/labfluids.css">
+<script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/4.4.1/chart.umd.min.js" integrity="sha384-bs/nf9FbdNouRbMiFcrcZfLXYPKiPaGVGplVbv7dLGECccEXDW+S3zjqSKR5ZEaD" crossorigin="anonymous"></script>
+<style>
+  .muestra{display:inline-block; width:14px; height:14px; border-radius:50%; border:1.5px solid rgba(0,0,0,.2); vertical-align:-2px; margin-right:5px}
+  .regimen{font-weight:900}
+  .regimen.laminar{color:#2a8045} .regimen.transicion{color:#b07800} .regimen.turbulento{color:#c4532a}
+  .barra-re{position:relative; height:14px; border-radius:999px; margin:8px 0 2px;
+    background:linear-gradient(90deg,#7fd29a 0%,#7fd29a 59%,#ffd36b 59%,#ffd36b 65%,#f59a72 65%,#f59a72 100%)}
+  .barra-re i{position:absolute; top:-5px; width:4px; height:24px; background:var(--texto); border-radius:2px; transform:translateX(-2px); transition:left .3s}
+  .escala-re{display:flex; justify-content:space-between; font-size:11.5px; color:var(--tenue); font-weight:700}
+  .lecturas{display:flex; flex-wrap:wrap; gap:6px; margin-top:8px}
+  .lecturas span{font-size:12.5px; background:var(--tarjeta-2); border:1px solid var(--borde); border-radius:999px; padding:2px 9px}
+</style>
+</head>
+<body class="lab-friccion">
+<header class="barra">
+  <a class="volver" href="./">← Inicio</a>
+  <div class="titulo-lab">
+    <span class="icono"><svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="#c45a28" stroke-width="2.2" stroke-linecap="round"><rect x="2" y="8" width="20" height="8" rx="3"/><path d="M6 12h4M12 11c1.5 2 3 0 4.5 1.5"/></svg></span>
+    <div><h1>Fricción en tuberías</h1><p>Darcy–Weisbach y número de Reynolds</p></div>
+  </div>
+  <nav class="pasos" aria-label="Pasos">
+    <button data-ir="paso-config" aria-current="step">1 Configurar</button>
+    <button data-ir="paso-medir">2 Medir</button>
+    <button data-ir="paso-result">3 Resultados</button>
+  </nav>
+</header>
+
+<main>
+<!-- ============ PASO 1 ============ -->
+<section class="paso activo" id="paso-config">
+  <div class="card intro">
+    <h2>¿Cuánta presión se pierde al mover un líquido por un tubo?</h2>
+    <p>Cuando un líquido avanza por una tubería, roza con las paredes y sus capas rozan entre sí. Ese roce le <b>quita presión</b>: al final del tubo la presión es menor que al principio. Por eso las bombas de agua tienen que empujar más fuerte mientras más larga y angosta es la cañería.</p>
+    <p>Los líquidos espesos, como la miel o el aceite, tienen más <b>viscosidad</b> y se mueven en capas ordenadas (flujo <b>laminar</b>). El agua rápida, en cambio, se arremolina (flujo <b>turbulento</b>). En este laboratorio vas a ver la diferencia con tinta de color, igual que en el experimento de Osborne Reynolds de 1883.</p>
+    <details class="explica">
+      <summary>¿Cómo funciona? (las ecuaciones)</summary>
+      <p><b>Número de Reynolds:</b> compara la inercia del fluido con su viscosidad μ. Si Re &lt; 2300 el flujo es laminar; si Re &gt; 4000, turbulento; entre ambos hay una transición inestable.</p>
+      <div class="formula">Re = ρ · v · D / μ</div>
+      <p><b>Darcy–Weisbach:</b> la caída de presión en un tubo de largo L y diámetro D, con el factor de fricción f.</p>
+      <div class="formula">Δp = f · (L / D) · ρ · v² / 2</div>
+      <p><b>Factor de fricción:</b> en flujo laminar f = 64 / Re (de aquí sale la ley de Hagen–Poiseuille). En flujo turbulento por un tubo liso se usa la fórmula de Blasius, f = 0,316 / Re<sup>0,25</sup>. Si el tubo es rugoso, f es mayor (diagrama de Moody).</p>
+      <div class="formula">Laminar: Δp = 32 · μ · L · v / D²</div>
+      <p class="ayuda">Las propiedades de los fluidos son valores aproximados de tablas a 20 °C (Çengel y Cimbala, <i>Mecánica de fluidos</i>; CRC Handbook). La leche y el aceite cambian un poco según el producto.</p>
+    </details>
+  </div>
+
+  <div class="grid2">
+    <div class="card">
+      <h2><span class="num">1</span>Elige el fluido</h2>
+      <div class="opciones" id="fluidos" role="group" aria-label="Fluido"></div>
+      <p class="ayuda" id="txtFluido" style="margin-top:10px"></p>
+    </div>
+    <div class="card">
+      <h2><span class="num">2</span>Elige la tubería</h2>
+      <div class="campo"><label for="selD">Diámetro interior D</label><select id="selD"><option value="0.008">8 mm</option><option value="0.010" selected>10 mm</option><option value="0.015">15 mm</option><option value="0.020">20 mm</option></select></div>
+      <div class="campo"><label for="selL">Largo entre los manómetros L</label><select id="selL"><option value="1" selected>1 m</option><option value="2">2 m</option><option value="5">5 m</option></select></div>
+      <div class="campo"><label for="selMat">Material</label><select id="selMat" style="width:170px"></select></div>
+      <p class="ayuda">Si cambias el fluido o la tubería, tus puntos anteriores se guardan aparte (cada combinación es un experimento distinto).</p>
+    </div>
+  </div>
+  <div class="card">
+    <h2><span class="num">3</span>Tu predicción</h2>
+    <p style="margin-top:0">Con el <b>mismo caudal</b> y el mismo tubo, ¿qué pierde más presión?</p>
+    <div class="opciones" id="prediccion" role="group" aria-label="Predicción">
+      <button class="opcion" data-p="agua" aria-pressed="false"><b>El agua</b></button>
+      <button class="opcion" data-p="aceite" aria-pressed="false"><b>El aceite</b></button>
+      <button class="opcion" data-p="igual" aria-pressed="false"><b>Pierden lo mismo</b></button>
+    </div>
+  </div>
+  <div class="fila-btn"><button class="btn pri grande" data-ir="paso-medir">Siguiente: medir →</button></div>
+</section>
+
+<!-- ============ PASO 2 ============ -->
+<section class="paso" id="paso-medir">
+  <div class="grid-medir">
+    <div>
+      <div class="lienzo"><canvas id="lienzo" aria-label="Tubería con tinta de color y dos manómetros"></canvas></div>
+      <div class="card" style="margin-top:14px">
+        <div class="deslizador">
+          <div class="cab"><label for="caudal">Caudal de la bomba</label><output id="outQ">—</output></div>
+          <input type="range" id="caudal" min="0" max="100" step="1" value="40">
+          <p class="ayuda">La escala del deslizador es logarítmica: sirve para caudales muy pequeños y grandes.</p>
+        </div>
+        <div class="kpis">
+          <div class="kpi"><small>Velocidad v</small><b id="kV">—</b></div>
+          <div class="kpi"><small>Reynolds</small><b id="kRe">—</b></div>
+          <div class="kpi destacado"><small>Δp medida</small><b id="kDp">—</b></div>
+        </div>
+        <div style="margin-top:12px">Régimen: <span class="regimen" id="kReg">—</span>
+          <div class="escala-re" style="margin-top:6px; justify-content:flex-start; gap:14px"><span style="color:#2a8045">● laminar</span><span style="color:#b07800">● transición</span><span style="color:#c4532a">● turbulento</span></div>
+          <div class="barra-re" aria-hidden="true"><i id="marcaRe" style="left:0"></i></div>
+          <div class="escala-re"><span>10</span><span>100</span><span>1 000</span><span>10 000</span><span>100 000</span></div>
+        </div>
+        <div class="aviso warn oculto" id="avisoP" style="margin-top:10px">⚠️ Más de 500 kPa: una bomba de casa no alcanza esta presión. Con un fluido tan espeso conviene un tubo más ancho o menos caudal.</div>
+      </div>
+    </div>
+    <div>
+      <div class="card">
+        <h2>Registrar mediciones</h2>
+        <p style="margin-top:0"><b id="txtFluidoMed"></b> en un tubo de <b id="txtTubo"></b>.</p>
+        <p class="ayuda">Meta: registra al menos <b>5 caudales</b>. Si quieres ver los dos regímenes, usa agua y recorre desde caudales muy bajos hasta altos.</p>
+        <div class="fila-btn">
+          <button class="btn pri grande" id="btnRegistrar">📏 Registrar</button>
+          <button class="btn" id="btnDeshacer">Deshacer último</button>
+        </div>
+        <div id="ultimas" class="lecturas" aria-live="polite"></div>
+      </div>
+      <div class="card">
+        <h2>Tus puntos <span class="chip" id="nPuntos">0</span></h2>
+        <div class="tabla-scroll"><table><thead><tr><th>#</th><th>Q (L/min)</th><th>Re</th><th>Δp</th></tr></thead><tbody id="tablaMed"></tbody></table></div>
+        <div class="fila-btn"><button class="btn pri" data-ir="paso-result">Ver resultados →</button></div>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- ============ PASO 3 ============ -->
+<section class="paso" id="paso-result">
+  <div id="sinDatos" class="card aviso warn">Todavía no tienes mediciones con esta combinación de fluido y tubería. Vuelve al paso 2 y registra al menos 3 caudales.</div>
+  <div id="conDatos" class="oculto">
+    <div class="card">
+      <h2>Lo que descubriste · <span id="rExp" style="text-transform:none; letter-spacing:0"></span></h2>
+      <div class="kpis">
+        <div class="kpi destacado"><small>Error medio de f vs teoría</small><b id="rEr">—</b></div>
+        <div class="kpi"><small>Puntos laminares</small><b id="rLam">—</b></div>
+        <div class="kpi"><small>Puntos turbulentos</small><b id="rTur">—</b></div>
+        <div class="kpi"><small>Viscosidad (Poiseuille)</small><b id="rMu">—</b></div>
+      </div>
+      <div class="aviso" id="rTexto"></div>
+      <div class="fila-btn oculto" id="filaRevelar"><button class="btn sol" id="btnRevelar">🔍 Revelar el fluido misterioso</button></div>
+      <div class="aviso ok oculto" id="rRevelado"></div>
+    </div>
+    <div class="grid2">
+      <div class="card"><h2>Caída de presión versus caudal</h2><div class="grafico"><canvas id="gDp"></canvas></div>
+        <p class="ayuda">En flujo laminar los puntos forman una recta (Δp ∝ Q). En flujo turbulento la curva se empina (Δp ∝ Q<sup>1,75</sup> en tubo liso).</p></div>
+      <div class="card"><h2>Factor de fricción versus Reynolds</h2><div class="grafico"><canvas id="gMoody"></canvas></div>
+        <p class="ayuda">Ejes logarítmicos, como el diagrama de Moody. La línea verde es 64/Re (laminar); la naranja es la teoría turbulenta para tu tubo.</p></div>
+    </div>
+    <div class="card">
+      <h2>Tabla de resultados</h2>
+      <div class="tabla-scroll"><table><thead><tr><th>#</th><th>Q (L/min)</th><th>v (m/s)</th><th>Re</th><th>Régimen</th><th>Δp</th><th>f medido</th><th>f teórico</th><th>Er (%)</th></tr></thead><tbody id="tablaRes"></tbody></table></div>
+      <div class="fila-btn">
+        <button class="btn" id="btnCSV">Descargar datos (CSV)</button>
+        <button class="btn peligro" id="btnBorrar">Borrar estos puntos</button>
+      </div>
+    </div>
+    <div class="card">
+      <h2>Preguntas de análisis</h2>
+      <ol class="preguntas">
+        <li>¿Qué le pasa a la tinta cuando el flujo es laminar? ¿Y cuando es turbulento?</li>
+        <li>¿A qué número de Reynolds empezó a desordenarse la tinta? Compáralo con 2300.</li>
+        <li>Con el mismo caudal, ¿cuánto más presión pierde el aceite que el agua? ¿Acertaste tu predicción?</li>
+        <li>En flujo laminar, si duplicas el caudal, ¿cuánto cambia Δp? ¿Y en flujo turbulento?</li>
+        <li>¿Qué pasa con la pérdida de presión si usas un tubo el doble de largo? ¿Y la mitad de ancho?</li>
+        <li>¿Por qué un tubo de acero pierde más presión que uno de PVC en flujo turbulento, pero no en laminar?</li>
+        <li>Con el fluido misterioso, calcula su viscosidad con Hagen–Poiseuille. ¿A qué fluido conocido se parece?</li>
+      </ol>
+    </div>
+  </div>
+</section>
+</main>
+<footer>LabFluids · Fricción en tuberías · <a href="docs/guia-friccion.pdf" target="_blank" rel="noopener">Guía del estudiante (PDF)</a> · <a href="./">Otros laboratorios</a> · Los KAMIKAZES · Universidad Mayor</footer>
+
+<script src="assets/fisica.js"></script>
+<script src="assets/comun.js"></script>
+<script>
+const { $, num, entero } = LF;
+// fluido misterioso: viscosidad entre la del aceite de oliva y la glicerina (se sortea en cada visita)
+const MISTERIO = { nombre: 'Fluido misterioso', rho: Math.round(900 + Math.random() * 300), mu: +(0.15 + Math.random() * 0.75).toFixed(3), color: '#c9a3e8', misterio: true };
+const FL = { ...Fisica.FLUIDOS, misterio: MISTERIO };
+const estado = { fluido: 'agua', D: 0.010, L: 1, mat: 'liso', Q: 0, pred: null, experimentos: {}, midiendo: false };
+const clave = () => `${estado.fluido}|${estado.D}|${estado.L}|${estado.mat}`;
+const puntos = () => (estado.experimentos[clave()] ||= []);
+const fluido = () => FL[estado.fluido];
+const P2 = 20;                                                   // presión en el segundo manómetro (kPa)
+
+/* ---------- paso 1 ---------- */
+$('fluidos').innerHTML = Object.entries(FL).map(([id, f]) =>
+  `<button class="opcion" data-f="${id}" aria-pressed="${id === estado.fluido}"><b><span class="muestra" style="background:${f.color}"></span>${f.nombre.replace(' (20 °C)', '')}</b><span>${f.misterio ? '¿Qué será?' : 'μ = ' + (f.mu < 0.01 ? num(f.mu * 1000, 2) + ' mPa·s' : num(f.mu, 3) + ' Pa·s')}</span></button>`).join('');
+$('selMat').innerHTML = Object.entries(Fisica.MATERIALES).map(([id, m]) => `<option value="${id}">${m.nombre}</option>`).join('');
+function comparaAgua(mu) {
+  const r = mu / Fisica.FLUIDOS.agua.mu;
+  if (Math.abs(r - 1) < 0.01) return '';
+  return r < 1 ? ` (más líquida: ${num(r, 2)} veces la del agua)` : ` (${r < 10 ? num(r, 1) : entero(r)} veces la del agua)`;
+}
+function textoFluido() {
+  const f = fluido();
+  $('txtFluido').innerHTML = f.misterio
+    ? `Densidad medida con una balanza: <b>${entero(f.rho)} kg/m³</b>. Su viscosidad es un secreto: descúbrela con tus mediciones.`
+    : `Densidad ρ = <b>${entero(f.rho)} kg/m³</b> · viscosidad μ = <b>${f.mu < 0.01 ? num(f.mu * 1000, 3) + ' mPa·s' : num(f.mu, 3) + ' Pa·s'}</b>${comparaAgua(f.mu)}`;
+  $('txtFluidoMed').textContent = f.nombre;
+  $('txtTubo').textContent = `${Math.round(estado.D * 1000)} mm × ${estado.L} m (${Fisica.MATERIALES[estado.mat].nombre})`;
+}
+document.querySelectorAll('#fluidos .opcion').forEach(b => b.addEventListener('click', () => {
+  estado.fluido = b.dataset.f;
+  document.querySelectorAll('#fluidos .opcion').forEach(x => x.setAttribute('aria-pressed', x === b ? 'true' : 'false'));
+  textoFluido(); pintarTabla(); actualizarCaudal();
+}));
+$('selD').addEventListener('change', e => { estado.D = Number(e.target.value); textoFluido(); pintarTabla(); });
+$('selL').addEventListener('change', e => { estado.L = Number(e.target.value); textoFluido(); pintarTabla(); });
+$('selMat').addEventListener('change', e => { estado.mat = e.target.value; textoFluido(); pintarTabla(); });
+document.querySelectorAll('#prediccion .opcion').forEach(b => b.addEventListener('click', () => {
+  estado.pred = b.dataset.p; document.querySelectorAll('#prediccion .opcion').forEach(x => x.setAttribute('aria-pressed', x === b ? 'true' : 'false'));
+}));
+
+/* ---------- caudal (deslizador logarítmico de 0,02 a 20 L/min) ---------- */
+const QMIN = 0.02, QMAX = 20;
+function actualizarCaudal() {
+  const s = Number($('caudal').value) / 100;
+  const qL = QMIN * Math.pow(QMAX / QMIN, s);
+  estado.Q = qL / 60000;
+  $('outQ').textContent = (qL < 1 ? num(qL, 2) : num(qL, 1)) + ' L/min';
+}
+$('caudal').addEventListener('input', actualizarCaudal);
+function modelo(Q) {
+  const f = fluido(), eps = Fisica.MATERIALES[estado.mat].eps;
+  return Fisica.perdidaCarga({ Q, D: estado.D, L: estado.L, rho: f.rho, mu: f.mu, eps });
+}
+// presión con su unidad: pascales si es chica, kilopascales si es grande
+const fmtDp = pa => pa < 10 ? num(pa, 2) + ' Pa' : pa < 1000 ? num(pa, 1) + ' Pa' : pa < 1e5 ? num(pa / 1000, 2) + ' kPa' : num(pa / 1000, 0) + ' kPa';
+
+/* ---------- dibujo: tubería con tinta ---------- */
+const lienzo = $('lienzo');
+let t = 0, ultimo = performance.now();
+function dibujar(ahora) {
+  const m = modelo(estado.Q), f = fluido();
+  // la animación avanza más rápido mientras más rápido va el fluido
+  const rapidez = estado.Q > 0 ? Math.min(1, 0.15 + 0.4 * Math.log10(1 + m.v * 30)) : 0;
+  t += Math.min((ahora - ultimo) / 1000, 0.05) * rapidez; ultimo = ahora;
+  const { ctx, w, h } = LF.prepararLienzo(lienzo, 0.42);
+  ctx.clearRect(0, 0, w, h);
+  const x0 = w * 0.04, x1 = w * 0.96, cy = h * 0.66, R = h * 0.2;
+  const X = s => x0 + (x1 - x0) * s;
+
+  // manómetros
+  const dp = m.dp / 1000;
+  [[0.22, P2 + dp, 'p₁'], [0.78, P2, 'p₂']].forEach(([s, p, n]) => {
+    const cx = X(s), y = cy - R - 30;
+    ctx.strokeStyle = '#c45a28'; ctx.lineWidth = 3; ctx.beginPath(); ctx.moveTo(cx, cy - R); ctx.lineTo(cx, y + 14); ctx.stroke();
+    ctx.fillStyle = '#fff'; ctx.strokeStyle = '#ec7a45'; ctx.lineWidth = 2;
+    ctx.beginPath(); ctx.roundRect(cx - 52, y - 30, 104, 44, 10); ctx.fill(); ctx.stroke();
+    ctx.fillStyle = '#c45a28'; ctx.font = '800 12px Nunito, sans-serif'; ctx.textAlign = 'center';
+    ctx.fillText(n, cx, y - 14);
+    ctx.fillStyle = '#1d3550'; ctx.font = '800 15px Nunito, sans-serif'; ctx.fillText(num(p, dp < 1 ? 3 : dp < 100 ? 2 : 0) + ' kPa', cx, y + 6);
+  });
+  ctx.fillStyle = '#5b7286'; ctx.font = '700 12px Nunito, sans-serif'; ctx.textAlign = 'center';
+  ctx.fillText('L = ' + estado.L + ' m', X(0.5), cy - R - 40);
+  ctx.strokeStyle = '#8aa0b2'; ctx.lineWidth = 1.5; ctx.setLineDash([4, 4]);
+  ctx.beginPath(); ctx.moveTo(X(0.22), cy - R - 34); ctx.lineTo(X(0.78), cy - R - 34); ctx.stroke(); ctx.setLineDash([]);
+
+  // tubo con el fluido
+  ctx.fillStyle = f.color; ctx.strokeStyle = '#c45a28'; ctx.lineWidth = 3;
+  ctx.beginPath(); ctx.roundRect(x0, cy - R, x1 - x0, 2 * R, 10); ctx.fill(); ctx.stroke();
+
+  // perfil de velocidades al final del tubo (parabólico si es laminar, plano si es turbulento)
+  if (estado.Q > 0) {
+    const xp = X(0.88), largo = w * 0.07;
+    ctx.strokeStyle = 'rgba(29,53,80,.55)'; ctx.fillStyle = 'rgba(29,53,80,.55)'; ctx.lineWidth = 1.6;
+    ctx.beginPath(); ctx.moveTo(xp, cy - R + 3); ctx.lineTo(xp, cy + R - 3); ctx.stroke();
+    for (let k = -4; k <= 4; k++) {
+      const r = Math.abs(k) / 4.6, u = m.Re < 2300 ? 1 - r * r : Math.pow(1 - r, 1 / 7);
+      const y = cy + k / 4.6 * R, L = largo * u;
+      ctx.beginPath(); ctx.moveTo(xp, y); ctx.lineTo(xp + L, y); ctx.stroke();
+      ctx.beginPath(); ctx.moveTo(xp + L, y); ctx.lineTo(xp + L - 5, y - 3); ctx.lineTo(xp + L - 5, y + 3); ctx.fill();
+    }
+  }
+
+  // tinta (experimento de Reynolds): línea recta si es laminar; se ondula y se deshace si es turbulento
+  if (estado.Q > 0) {
+    const turb = m.Re < 2000 ? 0 : m.Re < 4000 ? (m.Re - 2000) / 2000 : 1;
+    const sQuiebre = 0.1 + 0.62 * (1 - turb);                       // donde la tinta empieza a desordenarse
+    const amp = s => s < sQuiebre ? 0 : Math.min(0.85, (s - sQuiebre) * 5 * turb);
+    const yTinta = s => amp(s) * (0.6 * Math.sin(28 * s - 9 * t) + 0.4 * Math.sin(61 * s + 6 * t + 1.3));
+    ctx.strokeStyle = 'rgba(214,40,90,.85)'; ctx.lineWidth = 2.6; ctx.lineCap = 'round';
+    ctx.setLineDash([12, 7]); ctx.lineDashOffset = -t * 120;            // trazos que avanzan con el flujo
+    ctx.beginPath();
+    for (let s = 0.045; s <= 0.84; s += 0.004) { const y = cy + yTinta(s) * R; if (s === 0.045) ctx.moveTo(X(s), y); else ctx.lineTo(X(s), y); }
+    ctx.stroke(); ctx.setLineDash([]);
+    // nube de tinta que se mezcla con el agua
+    const n = Math.round(90 * turb);
+    for (let i = 0; i < n; i++) {
+      const s = sQuiebre + ((i * 0.618 + t * 0.9) % 1) * (0.84 - sQuiebre);
+      const y = Math.sin(i * 12.9898 + t * 4) * amp(s) * 1.05;
+      ctx.fillStyle = `rgba(214,40,90,${0.15 + 0.35 * (1 - (s - sQuiebre) / (0.84 - sQuiebre + 1e-9))})`;
+      ctx.beginPath(); ctx.arc(X(s), cy + y * R, 2.2 + 2 * amp(s), 0, Math.PI * 2); ctx.fill();
+    }
+  }
+  ctx.fillStyle = '#8a1f45'; ctx.beginPath(); ctx.roundRect(X(0.04) - 3, cy - R - 12, 6, R + 12, 3); ctx.fill();
+  ctx.fillStyle = '#5b7286'; ctx.font = '700 11.5px Nunito, sans-serif'; ctx.textAlign = 'left';
+  ctx.fillText('tinta', X(0.04) + 6, cy - R - 4);
+  requestAnimationFrame(dibujar);
+}
+requestAnimationFrame(dibujar);
+
+// posición de Re en la barra (escala logarítmica de 10 a 100 000, con la transición marcada)
+function posRe(Re) { const l = Math.log10(Math.max(10, Math.min(Re, 1e5))); return (l - 1) / 4 * 100; }
+setInterval(() => {
+  const m = modelo(estado.Q);
+  const ruido = 1 + 0.004 * Fisica.gauss();
+  $('kV').textContent = num(m.v, m.v < 0.1 ? 3 : 2) + ' m/s';
+  $('kRe').textContent = m.Re < 100 ? num(m.Re, 1) : entero(m.Re);
+  $('kDp').textContent = estado.Q > 0 ? fmtDp(m.dp * ruido) : '0 Pa';
+  $('avisoP').classList.toggle('oculto', m.dp < 500e3);
+  const cls = m.regimen === 'transición' ? 'transicion' : m.regimen;
+  $('kReg').className = 'regimen ' + cls; $('kReg').textContent = estado.Q > 0 ? m.regimen : '—';
+  $('marcaRe').style.left = posRe(m.Re) + '%';
+  $('btnRegistrar').disabled = estado.Q <= 0 || estado.midiendo;
+}, 350);
+
+// registrar: 5 lecturas del manómetro diferencial (±1 % y resolución 0,1 Pa) y del caudalímetro (±1 %)
+$('btnRegistrar').addEventListener('click', () => {
+  estado.midiendo = true; $('btnRegistrar').disabled = true; $('ultimas').innerHTML = '';
+  const m = modelo(estado.Q), lect = []; let k = 0;
+  const tic = setInterval(() => {
+    const dp = Math.max(0, Math.round(m.dp * (1 + 0.01 * Fisica.gauss()) * 10) / 10), q = estado.Q * (1 + 0.01 * Fisica.gauss());
+    lect.push({ dp, q });
+    $('ultimas').insertAdjacentHTML('beforeend', `<span>Δp = ${fmtDp(dp)}</span>`);
+    if (++k === 5) {
+      clearInterval(tic);
+      puntos().push({ Q: Fisica.media(lect.map(l => l.q)), dp: Fisica.media(lect.map(l => l.dp)), sd: Fisica.desviacion(lect.map(l => l.dp)), lecturas: lect.map(l => l.dp) });
+      estado.midiendo = false; pintarTabla();
+    }
+  }, 300);
+});
+$('btnDeshacer').addEventListener('click', () => { puntos().pop(); pintarTabla(); });
+
+function calcular(p) {
+  const f = fluido(), eps = Fisica.MATERIALES[estado.mat].eps, A = Fisica.area(estado.D);
+  const v = p.Q / A, Re = Fisica.reynolds({ rho: f.rho, v, D: estado.D, mu: f.mu });
+  const fExp = Fisica.fExperimental({ dp: p.dp, D: estado.D, L: estado.L, rho: f.rho, v });
+  const fTeo = Fisica.fTeorico(Re, eps / estado.D);
+  return { ...p, v, Re, reg: Fisica.regimen(Re), fExp, fTeo, er: Number.isFinite(fTeo) ? Math.abs(fExp - fTeo) / fTeo * 100 : NaN };
+}
+function pintarTabla() {
+  const P = puntos().map(calcular);
+  $('nPuntos').textContent = P.length;
+  $('tablaMed').innerHTML = P.map((p, i) => `<tr><td>${i + 1}</td><td>${num(p.Q * 60000, 2)}</td><td>${p.Re < 100 ? num(p.Re, 1) : entero(p.Re)}</td><td>${fmtDp(p.dp)}</td></tr>`).join('')
+    || '<tr><td colspan="4" style="text-align:center; color:var(--tenue)">Aún no hay puntos</td></tr>';
+}
+
+/* ---------- paso 3 ---------- */
+LF.estiloGraficos();
+let gDp = null, gMoody = null;
+function analizar() {
+  const P = puntos().map(calcular), f = fluido(), eps = Fisica.MATERIALES[estado.mat].eps;
+  $('sinDatos').classList.toggle('oculto', P.length >= 3);
+  $('conDatos').classList.toggle('oculto', P.length < 3);
+  if (P.length < 3) return;
+  $('rExp').textContent = `${f.nombre}, tubo de ${Math.round(estado.D * 1000)} mm × ${estado.L} m`;
+  const lam = P.filter(p => p.reg === 'laminar'), tur = P.filter(p => p.reg === 'turbulento');
+  const conTeo = P.filter(p => Number.isFinite(p.er));
+  $('rEr').textContent = conTeo.length ? num(Fisica.media(conTeo.map(p => p.er)), 1) + ' %' : '—';
+  $('rLam').textContent = lam.length; $('rTur').textContent = tur.length;
+  // viscosidad con Hagen–Poiseuille: μ = Δp·D²/(32·L·v), promedio de los puntos laminares
+  let muCalc = NaN;
+  if (lam.length) muCalc = Fisica.media(lam.map(p => Fisica.viscosidadPoiseuille({ dp: p.dp, D: estado.D, L: estado.L, v: p.v })));
+  estado.muCalc = muCalc;
+  $('rMu').textContent = Number.isFinite(muCalc) ? (muCalc < 0.01 ? num(muCalc * 1000, 2) + ' mPa·s' : num(muCalc, 3) + ' Pa·s') : 'sin puntos laminares';
+  let txt = '';
+  if (lam.length && tur.length) txt = 'Mediste en los dos regímenes: fíjate en el gráfico de la derecha cómo los puntos saltan de la recta laminar a la curva turbulenta. ';
+  else if (lam.length) txt = 'Todos tus puntos son laminares: el fluido avanza en capas ordenadas y Δp crece en proporción directa al caudal. ';
+  else txt = 'Tus puntos son turbulentos o de transición. Para ver flujo laminar con agua usa caudales muy bajos, o elige un fluido más viscoso. ';
+  if (!f.misterio && Number.isFinite(muCalc)) txt += `La viscosidad que calculaste (${muCalc < 0.01 ? num(muCalc * 1000, 2) + ' mPa·s' : num(muCalc, 3) + ' Pa·s'}) difiere ${num(Math.abs(muCalc - f.mu) / f.mu * 100, 1)} % del valor de tabla.`;
+  if (estado.pred) txt += ` Tu predicción: «${{ agua: 'pierde más el agua', aceite: 'pierde más el aceite', igual: 'pierden lo mismo' }[estado.pred]}». Compruébalo midiendo agua y aceite con el mismo caudal y tubo.`;
+  $('rTexto').innerHTML = txt;
+  $('filaRevelar').classList.toggle('oculto', !f.misterio);
+
+  $('tablaRes').innerHTML = P.map((p, i) => `<tr><td>${i + 1}</td><td>${num(p.Q * 60000, 2)}</td><td>${num(p.v, 3)}</td><td>${p.Re < 100 ? num(p.Re, 1) : entero(p.Re)}</td><td>${p.reg}</td><td>${fmtDp(p.dp)}</td><td>${num(p.fExp, 4)}</td><td>${Number.isFinite(p.fTeo) ? num(p.fTeo, 4) : '—'}</td><td>${Number.isFinite(p.er) ? num(p.er, 1) : '—'}</td></tr>`).join('');
+
+  // gráfico 1: Δp vs Q con la curva del modelo
+  // si todas las presiones son chicas, el gráfico va en pascales
+  const enPa = Math.max(...P.map(p => p.dp)) < 1000, esc = enPa ? 1 : 1000;
+  const qmax = Math.max(...P.map(p => p.Q)) * 1.1, curva = [];
+  for (let i = 1; i <= 60; i++) { const q = qmax * i / 60; curva.push({ x: q * 60000, y: modelo(q).dp / esc }); }
+  if (gDp) gDp.destroy();
+  gDp = new Chart($('gDp'), { type: 'scatter', data: { datasets: [
+    { label: 'Tus mediciones', data: P.map(p => ({ x: p.Q * 60000, y: p.dp / esc })), backgroundColor: '#ec7a45', pointRadius: 6 },
+    { type: 'line', label: 'Modelo', data: curva, borderColor: '#1d3550', borderWidth: 2, pointRadius: 0 } ] },
+    options: { scales: { x: { type: 'linear', min: 0, title: { display: true, text: 'Caudal Q (L/min)' } }, y: { min: 0, title: { display: true, text: enPa ? 'Δp (Pa)' : 'Δp (kPa)' } } } } });
+
+  // gráfico 2: f vs Re (log-log) con las curvas teóricas
+  const reMin = Math.min(...P.map(p => p.Re)) / 2, reMax = Math.max(...P.map(p => p.Re)) * 2;
+  const lamC = [], turC = [];
+  for (let i = 0; i <= 50; i++) {
+    const Re = Math.pow(10, Math.log10(reMin) + (Math.log10(reMax) - Math.log10(reMin)) * i / 50);
+    if (Re <= 2300) lamC.push({ x: Re, y: 64 / Re });
+    if (Re >= 4000) turC.push({ x: Re, y: Fisica.fTeorico(Re, eps / estado.D) });
+  }
+  if (gMoody) gMoody.destroy();
+  gMoody = new Chart($('gMoody'), { type: 'scatter', data: { datasets: [
+    { label: 'Tus mediciones', data: P.map(p => ({ x: p.Re, y: p.fExp })), backgroundColor: '#ec7a45', pointRadius: 6 },
+    { type: 'line', label: 'Laminar 64/Re', data: lamC, borderColor: '#2fa56d', borderWidth: 2.5, pointRadius: 0 },
+    { type: 'line', label: 'Turbulento', data: turC, borderColor: '#ff8a5c', borderWidth: 2.5, borderDash: [6, 4], pointRadius: 0 } ] },
+    options: { scales: { x: { type: 'logarithmic', title: { display: true, text: 'Número de Reynolds' } }, y: { type: 'logarithmic', title: { display: true, text: 'Factor de fricción f' } } } } });
+}
+$('btnRevelar').addEventListener('click', () => {
+  const er = Math.abs(estado.muCalc - MISTERIO.mu) / MISTERIO.mu * 100;
+  const compara = MISTERIO.mu < 0.3 ? 'unas 2 a 4 veces más espeso que el aceite de oliva' : MISTERIO.mu < 0.8 ? 'más espeso que el aceite y menos que la glicerina' : 'casi tan espeso como la glicerina';
+  $('rRevelado').innerHTML = Number.isFinite(estado.muCalc)
+    ? `La viscosidad del fluido misterioso era <b>${num(MISTERIO.mu, 3)} Pa·s</b> (${compara}). Tú calculaste <b>${num(estado.muCalc, 3)} Pa·s</b>: una diferencia de <b>${num(er, 1)} %</b>.`
+    : 'Para descubrirlo necesitas al menos un punto laminar (Re &lt; 2300).';
+  $('rRevelado').classList.remove('oculto');
+});
+$('btnCSV').addEventListener('click', () => {
+  const f = fluido(), P = puntos().map(calcular);
+  const filas = [['LabFluids - Friccion en tuberias (datos simulados)'], ['fluido', f.nombre, 'densidad (kg/m3)', f.rho, 'D (mm)', estado.D * 1000, 'L (m)', estado.L, 'material', Fisica.MATERIALES[estado.mat].nombre],
+    ['punto', 'Q (L/min)', 'v (m/s)', 'Re', 'regimen', 'dp promedio (kPa)', 'desv. estandar (kPa)', 'f medido', 'f teorico', 'Er (%)']];
+  P.forEach((p, i) => filas.push([i + 1, +(p.Q * 60000).toFixed(4), +p.v.toFixed(4), +p.Re.toFixed(1), p.reg, +(p.dp / 1000).toFixed(3), +(p.sd / 1000).toFixed(3), +p.fExp.toFixed(5), Number.isFinite(p.fTeo) ? +p.fTeo.toFixed(5) : '', Number.isFinite(p.er) ? +p.er.toFixed(2) : '']));
+  LF.descargarCSV('labfluids_friccion.csv', filas);
+});
+$('btnBorrar').addEventListener('click', () => { if (confirm('¿Borrar los puntos de este fluido y tubería?')) { estado.experimentos[clave()] = []; pintarTabla(); analizar(); } });
+
+textoFluido(); actualizarCaudal(); pintarTabla();
+LF.iniciarPasos(id => { if (id === 'paso-result') analizar(); });
+</script>
+</body>
+</html>

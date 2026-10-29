@@ -1,0 +1,1094 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Vaciado de un estanque · LabFluids</title>
+<link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 32 32'%3E%3Cpath d='M16 3C11 10 7 14.5 7 19a9 9 0 0 0 18 0c0-4.5-4-9-9-16z' fill='%232b8cc4'/%3E%3C/svg%3E">
+<meta name="description" content="LabFluids: laboratorio virtual con sensores para estudiar el vaciado de un estanque con la ley de Torricelli. Funciona en celulares y computadores.">
+<script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/4.4.1/chart.umd.min.js" integrity="sha384-bs/nf9FbdNouRbMiFcrcZfLXYPKiPaGVGplVbv7dLGECccEXDW+S3zjqSKR5ZEaD" crossorigin="anonymous"></script>
+<link rel="preconnect" href="https://fonts.googleapis.com"><link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Nunito:wght@500;600;700;800;900&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="assets/labfluids.css">
+<style>
+  /* lo que solo usa este laboratorio (el resto viene de assets/labfluids.css) */
+  .card h2{font-size:13px; text-transform:uppercase; letter-spacing:1px; color:var(--lab-osc); margin:0 0 12px; font-weight:800}
+  .modos{display:grid; grid-template-columns:repeat(auto-fit,minmax(min(100%,190px),1fr)); gap:10px}
+  .modo{border:2px solid var(--borde); border-radius:14px; padding:10px 12px; cursor:pointer; background:var(--tarjeta-2); text-align:left; font:inherit; color:inherit}
+  .modo b{display:block; font-size:14.5px}
+  .modo span{font-size:12.5px; color:var(--tenue)}
+  .modo[aria-pressed="true"]{border-color:var(--lab); background:var(--lab-cla)}
+  .modo .rec{display:block; margin-top:4px; font-size:11.5px; font-weight:800; color:var(--ok)}
+  .campo input[type=file]{max-width:100%; color:var(--tenue)}
+  .btn.warn{background:var(--sol); color:#3a2a00}
+  .kpi.tiempo{background:var(--lab); border-color:var(--lab)} .kpi.tiempo small, .kpi.tiempo b{color:#fff}
+  .estado{display:inline-flex; align-items:center; gap:7px; font-weight:700; font-size:13.5px; color:var(--tenue)}
+  .punto{width:11px; height:11px; border-radius:50%; background:var(--suave); display:inline-block}
+  .punto.on{background:var(--ok)} .punto.med{background:var(--sol)} .punto.err{background:var(--error)}
+  #lienzoVideo{width:auto !important; max-width:100%; max-height:72vh; margin:0 auto; background:#1d3550}
+  .badge{position:absolute; top:16px; right:16px; background:rgba(255,255,255,.9); padding:5px 11px; border-radius:20px; font-size:12px; font-weight:700; color:var(--tenue); border:1px solid var(--borde)}
+  .etq{display:inline-block; font-size:11px; border-radius:999px; padding:1px 8px; font-weight:800}
+  .etq.sim{background:#ece4fb; color:#6b4fb3} .etq.video{background:#dff3e8; color:#1e7a4d}
+  .etq.arduino{background:var(--lab-cla); color:var(--lab-osc)} .etq.csv{background:var(--fondo-2); color:var(--tenue)}
+  .pasos-video{display:flex; flex-wrap:wrap; gap:6px; margin-bottom:8px}
+  .pasos-video span{font-size:12px; padding:3px 10px; border-radius:999px; border:1px solid var(--borde); color:var(--tenue); background:var(--tarjeta)}
+  .pasos-video span.on{border-color:var(--lab); color:var(--lab-osc); font-weight:800}
+  .pasos-video span.hecho{border-color:var(--ok); color:var(--ok)}
+  details summary{cursor:pointer; font-weight:800; color:var(--lab-osc)}
+</style>
+</head>
+<body class="lab-vaciado">
+<header class="barra">
+  <a class="volver" href="./">← Inicio</a>
+  <div class="titulo-lab">
+    <span class="icono"><svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="#1b6a99" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M5 3v14a2 2 0 0 0 2 2h7a2 2 0 0 0 2-2V3"/><path d="M5 10h11"/><path d="M16 16c2 0 3 1.5 3 3.5"/></svg></span>
+    <div><h1>Vaciado de un estanque</h1><p>Ley de Torricelli con sensores</p></div>
+  </div>
+  <nav class="pasos" aria-label="Pasos del laboratorio">
+    <button data-ir="1" aria-current="step">1 Configurar</button>
+    <button data-ir="2">2 Medir</button>
+    <button data-ir="3">3 Resultados</button>
+  </nav>
+</header>
+
+<main>
+  <!-- =================== PASO 1: CONFIGURAR =================== -->
+  <section class="paso activo" id="paso1" aria-label="Configurar">
+    <div class="card intro">
+      <h2>¿Cuánto demora en vaciarse un estanque?</h2>
+      <p>Si haces un hoyo abajo en una botella con agua, el chorro sale fuerte al principio y cada vez más débil. Eso pasa porque la rapidez del agua depende de la <b>altura</b> que tiene encima. Evangelista Torricelli lo descubrió en 1643.</p>
+      <p>En este laboratorio un sensor mide la altura del agua mientras el estanque se vacía. Con esos datos vas a calcular el <b>coeficiente de descarga C<sub>d</sub></b>, que dice qué tan «eficiente» es el orificio.</p>
+      <details class="explica">
+        <summary>¿Cómo funciona? (las ecuaciones)</summary>
+        <p><b>Ley de Torricelli:</b> el agua sale por el orificio con la misma rapidez que tendría si cayera libremente desde la altura h.</p>
+        <div class="formula">v = √(2 · g · h)</div>
+        <p><b>Tiempo de vaciado:</b> combinando lo anterior con la conservación de la masa (el volumen que baja en el estanque es el que sale por el orificio), con A el área del estanque y a la del orificio:</p>
+        <div class="formula">t = (A / (C<sub>d</sub> · a)) · √(2 (h<sub>0</sub> − h<sub>f</sub>) / g)</div>
+        <p>El chorro se angosta al salir (vena contracta) y por eso C<sub>d</sub> es menor que 1. Para un orificio de borde recto, los libros dan valores cercanos a 0,61.</p>
+      </details>
+    </div>
+    <div class="grid2">
+      <div>
+        <div class="card">
+          <h2>1 · ¿Cómo quieres medir?</h2>
+          <div class="modos" role="group" aria-label="Modo de medición">
+            <button class="modo" data-modo="sim" aria-pressed="true"><b>Laboratorio virtual</b><span>Estanque simulado con sensores virtuales. Funciona en cualquier celular o computador.</span><span class="rec">Recomendado</span></button>
+            <button class="modo" data-modo="video" aria-pressed="false"><b>Video de tu botella</b><span>Graba una botella real vaciándose y mide con la cámara del celular.</span></button>
+            <button class="modo" data-modo="arduino" aria-pressed="false"><b>Arduino</b><span>Sensor HC-SR04 por USB. Opcional: solo en computador con Chrome o Edge.</span></button>
+            <button class="modo" data-modo="csv" aria-pressed="false"><b>Importar CSV</b><span>Datos grabados antes (respaldo).</span></button>
+          </div>
+
+          <div id="panelSim">
+            <div class="campo"><label for="velocidad">Velocidad de la simulación</label>
+              <select id="velocidad"><option value="1">×1 (tiempo real)</option><option value="2">×2</option><option value="5" selected>×5</option><option value="10">×10</option></select></div>
+            <p class="ayuda">El estanque virtual tiene un sensor ultrasónico y un sensor de contacto que miden con ruido, igual que los reales. Cada intento es un poco distinto, como en un laboratorio de verdad. Los resultados quedan marcados como <span class="etq sim">virtual</span>.</p>
+          </div>
+
+          <div id="panelVideo" class="oculto">
+            <p class="ayuda" style="margin-bottom:8px"><b>Qué grabar:</b> una botella transparente con un hoyo, con una cinta métrica o regla pegada al lado (el 0 en la base de la botella). Deja el celular fijo y de frente. Graba desde que retiras la cinta hasta que el agua deja de salir.</p>
+            <div class="campo"><label for="archivoVideo">Video</label><input type="file" id="archivoVideo" accept="video/*"></div>
+            <p class="ayuda" id="infoVideo">Puedes grabarlo en el momento o elegirlo de la galería.</p>
+          </div>
+
+          <div id="panelArduino" class="oculto">
+            <div class="aviso error oculto" id="sinSerial">Este navegador no puede conectarse a un Arduino (por ejemplo, en celulares). Usa el laboratorio virtual o el video.</div>
+            <div class="fila-btn">
+              <button class="btn pri" id="btnConectar">Conectar Arduino</button>
+              <button class="btn" id="btnDesconectar" disabled>Desconectar</button>
+              <span class="estado" id="estadoConexion"><span class="punto"></span>Desconectado</span>
+            </div>
+            <p class="ayuda">El Arduino envía <code>t_ms;h_mm;contacto</code> a 115200 baudios. El circuito también está diseñado para simularse en Tinkercad.</p>
+          </div>
+
+          <div id="panelCsv" class="oculto">
+            <div class="campo"><label for="archivoCsv">Archivo</label><input type="file" id="archivoCsv" accept=".csv,.txt"></div>
+            <p class="ayuda" id="infoCsv">Un archivo por ensayo, con líneas <code>t_ms;h_mm;contacto</code>.</p>
+          </div>
+        </div>
+
+        <div class="card">
+          <h2>2 · Tu predicción</h2>
+          <p class="ayuda" style="margin-bottom:6px">Antes de medir: ¿cuántos segundos crees que tardará el agua en dejar de salir (bajar desde h<sub>0</sub> hasta el orificio)?</p>
+          <div class="campo"><label for="prediccion">Mi predicción (s)</label><input type="number" id="prediccion" min="1" max="3600" step="1" placeholder="—"></div>
+        </div>
+      </div>
+
+      <div>
+        <div class="card">
+          <h2>3 · El estanque</h2>
+          <div class="campo"><label for="D">Diámetro interior D (cm)</label><input type="number" id="D" min="3" max="40" step="0.1" value="8"></div>
+          <div class="campo"><label for="d">Diámetro del orificio d (mm)</label><input type="number" id="d" min="1" max="20" step="0.1" value="5"></div>
+          <div class="campo"><label for="h0">Altura inicial del agua h<sub>0</sub>, desde la base (cm)</label><input type="number" id="h0" min="3" max="30" step="0.5" value="16"></div>
+          <div class="campo"><label for="hf">Altura del orificio y del sensor h<sub>f</sub>, desde la base (cm)</label><input type="number" id="hf" min="0.5" max="10" step="0.1" value="2"></div>
+          <p class="ayuda">El borde inferior del orificio y el sensor de contacto van a esta altura. Cuando el agua llega ahí deja de salir: el sensor se seca, se enciende el LED y termina el ensayo.</p>
+          <details>
+            <summary>Opciones avanzadas</summary>
+            <div class="campo"><label for="cd">C<sub>d</sub> del modelo teórico</label><input type="number" id="cd" min="0.3" max="1" step="0.01" value="0.61"></div>
+            <div class="campo"><label for="T">Temperatura (°C, solo Arduino)</label><input type="number" id="T" min="-5" max="45" step="0.5" value="20"></div>
+            <div class="campo"><label for="usarContacto">Terminar con el sensor de contacto</label><input type="checkbox" id="usarContacto" checked></div>
+          </details>
+          <div class="aviso error oculto" id="errorConfig" role="alert"></div>
+        </div>
+
+        <div class="card">
+          <h2>4 · Sensor de tu celular: mide g</h2>
+          <p class="ayuda">La gravedad g aparece en la ley de Torricelli. Deja el celular quieto sobre la mesa y mídela con su acelerómetro.</p>
+          <div class="fila-btn"><button class="btn pri" id="btnMedirG">Medir g (3 s)</button></div>
+          <p class="ayuda" id="resultadoG" aria-live="polite">Por ahora se usa g = 9,81 m/s².</p>
+          <div class="campo oculto" id="filaUsarG"><label for="usarG">Usar mi g medida en los cálculos</label><input type="checkbox" id="usarG"></div>
+        </div>
+      </div>
+    </div>
+    <div class="fila-btn" style="justify-content:flex-end"><button class="btn pri" id="btnIrMedir">Siguiente: medir →</button></div>
+  </section>
+
+  <!-- =================== PASO 2: MEDIR =================== -->
+  <section class="paso" id="paso2" aria-label="Medir">
+    <div class="card" style="display:flex; flex-wrap:wrap; justify-content:space-between; gap:8px; align-items:center">
+      <div><h2 style="margin:0">Medición · <span id="condicionTxt"></span></h2><p class="ayuda" id="intentoTxt"></p></div>
+      <span class="estado" id="estadoMedicion" role="status" aria-live="polite"><span class="punto"></span>Listo para iniciar</span>
+    </div>
+
+    <!-- Laboratorio virtual, Arduino y CSV -->
+    <div id="medirSensores">
+      <div class="grid2">
+        <div class="lienzo">
+          <canvas id="estanque" width="640" height="520" aria-label="Animación del estanque con el sensor ultrasónico y el sensor de contacto"></canvas>
+          <span class="badge" id="badgeFuente">Sensores virtuales</span>
+        </div>
+        <div class="card" style="margin-bottom:0">
+          <div class="kpis">
+            <div class="kpi tiempo"><small>Tiempo</small><b id="kTiempo">0,0 s</b></div>
+            <div class="kpi"><small>Sensor ultrasónico</small><b id="kAltura">— cm</b></div>
+            <div class="kpi"><small>Sensor de contacto</small><b id="kContacto">—</b></div>
+            <div class="kpi"><small>Lecturas descartadas</small><b id="kDescartes">0</b></div>
+          </div>
+          <div class="fila-btn">
+            <button class="btn ok" id="btnIniciar">▶ Iniciar intento</button>
+            <button class="btn warn" id="btnDetener" disabled>■ Detener</button>
+            <button class="btn pri oculto" id="btnProcesarCsv">Procesar archivo</button>
+          </div>
+          <div class="aviso" id="instruccion">Presiona «Iniciar intento».</div>
+        </div>
+      </div>
+      <div class="card" style="margin-top:16px">
+        <h2>Altura medida por el sensor · h(t)</h2>
+        <div class="grafico"><canvas id="graficoVivo" aria-label="Gráfico de altura del agua versus tiempo"></canvas></div>
+      </div>
+    </div>
+
+    <!-- Video de la botella -->
+    <div id="medirVideo" class="oculto">
+      <div class="card">
+        <h2>Medir con el video</h2>
+        <div class="pasos-video" id="pasosVideo">
+          <span data-e="cal0">1 · Marca 0 cm</span><span data-e="cal1">2 · Segunda marca</span><span data-e="inicio">3 · Inicio</span><span data-e="medir">4 · Nivel del agua</span>
+        </div>
+        <div class="aviso" id="instruccionVideo" aria-live="polite">Carga un video en el paso 1.</div>
+        <div class="lienzo" style="padding:6px">
+          <canvas id="lienzoVideo" width="640" height="360" aria-label="Cuadro del video; toca para marcar"></canvas>
+        </div>
+        <video id="video" playsinline muted preload="auto" class="oculto"></video>
+        <div class="campo"><label for="buscador">Tiempo del video: <b id="tVideo">0,0 s</b></label><span class="ayuda" id="tDesdeInicio"></span></div>
+        <input type="range" id="buscador" min="0" max="1" step="0.05" value="0" aria-label="Mover el video">
+        <div class="fila-btn">
+          <button class="btn" id="btnAtras">◀ −Δt</button>
+          <button class="btn" id="btnAdelante">+Δt ▶</button>
+          <div class="campo" style="margin:0"><label for="paso">Δt</label>
+            <select id="paso"><option value="0.5">0,5 s</option><option value="1">1 s</option><option value="2" selected>2 s</option><option value="5">5 s</option></select></div>
+        </div>
+        <div class="campo"><label for="distCal">Distancia entre las dos marcas (cm)</label><input type="number" id="distCal" min="1" max="50" step="0.5" value="10"></div>
+        <div class="fila-btn">
+          <button class="btn pri" id="btnMarcarInicio" disabled>Marcar inicio aquí (t = 0)</button>
+          <button class="btn" id="btnDeshacer" disabled>Deshacer último punto</button>
+          <button class="btn" id="btnRecalibrar">Volver a calibrar</button>
+          <button class="btn ok" id="btnTerminarVideo" disabled>Terminar y analizar</button>
+        </div>
+        <p class="ayuda" id="puntosVideo">0 puntos marcados.</p>
+      </div>
+    </div>
+
+    <div class="card oculto" id="resumenIntento" aria-live="polite">
+      <h2>Resultado del intento</h2>
+      <div class="kpis">
+        <div class="kpi tiempo"><small>t medido</small><b id="rMedido">—</b></div>
+        <div class="kpi"><small>t teórico</small><b id="rTeorico">—</b></div>
+        <div class="kpi"><small>Error relativo</small><b id="rError">—</b></div>
+        <div class="kpi"><small>C<sub>d</sub> experimental</small><b id="rCd">—</b></div>
+      </div>
+      <p class="ayuda" id="rDetalle"></p>
+      <div class="aviso warn oculto" id="rAviso"></div>
+      <div class="fila-btn">
+        <button class="btn ok" id="btnGuardar">Guardar intento</button>
+        <button class="btn peligro" id="btnDescartar">Descartar</button>
+        <button class="btn pri" id="btnVerResultados">Guardar y ver resultados →</button>
+      </div>
+    </div>
+  </section>
+
+  <!-- =================== PASO 3: RESULTADOS =================== -->
+  <section class="paso" id="paso3" aria-label="Resultados">
+    <div class="card">
+      <h2>Resumen por condición</h2>
+      <div class="tabla-scroll"><table id="tablaCondiciones"></table></div>
+      <p class="ayuda">Desviación estándar muestral (n − 1). CV = desviación / promedio. Solo se usan los intentos incluidos.</p>
+      <div id="comparaPrediccion"></div>
+    </div>
+    <div class="grid2">
+      <div class="card">
+        <h2>¿Cómo afectan h<sub>0</sub> y d al tiempo?</h2>
+        <div class="grafico bajo"><canvas id="graficoPregunta" aria-label="Tiempo de vaciado versus altura inicial"></canvas></div>
+        <p class="ayuda">Puntos: intentos medidos. Líneas: predicción de Torricelli.</p>
+      </div>
+      <div class="card">
+        <h2>Linealización: √(h − h<sub>f</sub>) versus t</h2>
+        <div class="campo"><label for="selIntento">Intento</label><select id="selIntento" style="width:190px"></select></div>
+        <div class="grafico bajo"><canvas id="graficoRaiz" aria-label="Raíz de la altura versus tiempo con recta ajustada"></canvas></div>
+        <p class="ayuda" id="ajusteTxt"></p>
+      </div>
+    </div>
+    <div class="card">
+      <h2>Todos los intentos</h2>
+      <div class="tabla-scroll"><table id="tablaIntentos"></table></div>
+      <p class="ayuda">Los datos anómalos no se borran: se excluyen del promedio y se explica por qué.</p>
+      <div class="fila-btn">
+        <button class="btn" id="btnExportResumen">Exportar resultados (CSV)</button>
+        <button class="btn" id="btnExportCrudos">Exportar datos h(t) (CSV)</button>
+        <button class="btn pri" id="btnNuevaCondicion">Nueva condición</button>
+        <button class="btn peligro" id="btnBorrarTodo">Borrar todo</button>
+      </div>
+      <div class="aviso warn oculto" id="confirmarBorrado">¿Borrar todos los intentos? No se puede deshacer.
+        <div class="fila-btn"><button class="btn peligro" id="btnConfirmarBorrado">Sí, borrar</button><button class="btn" id="btnCancelarBorrado">Cancelar</button></div></div>
+    </div>
+    <div class="card">
+      <h2>Preguntas de análisis</h2>
+      <ol class="preguntas">
+        <li>¿El nivel bajó a velocidad constante? ¿Qué parte del gráfico h(t) lo muestra?</li>
+        <li>¿Qué forma tiene el gráfico √(h − h<sub>f</sub>) versus t? ¿Qué significa esa forma?</li>
+        <li>Al pasar de h<sub>0</sub> = 8 cm a 16 cm, ¿se duplicó el tiempo? Compara con la teoría.</li>
+        <li>¿Cuántas veces más demoró el orificio de 4 mm que el de 5 mm? ¿Coincide con (5/4)² ≈ 1,56?</li>
+        <li>¿Qué valor de C<sub>d</sub> obtuviste? ¿Por qué es menor que 1?</li>
+        <li>¿Qué tan dispersas fueron tus 5 repeticiones? Nombra dos causas posibles.</li>
+        <li>¿Qué tan cerca estuvo tu predicción inicial?</li>
+      </ol>
+    </div>
+  </section>
+</main>
+<footer>LabFluids · Vaciado de un estanque · Simulador original de Matías Alvayay · <a href="docs/guia-vaciado.pdf" target="_blank" rel="noopener">Guía del estudiante (PDF)</a> · <a href="./">Otros laboratorios</a> · Los KAMIKAZES · Universidad Mayor</footer>
+
+<script>
+(function(){
+  'use strict';
+
+  // ================= Física y estadística =================
+  const G_REAL = 9.81;                      // gravedad del "mundo" simulado
+  const areaCirculo = d_m => Math.PI * d_m * d_m / 4;
+  const gModelo = () => (app.cfg && app.cfg.g) || 9.81;
+
+  // Alturas medidas desde la base. El borde inferior del orificio (y el sensor de contacto) está en hf:
+  // la carga que empuja el agua es h − hf, y el agua deja de salir cuando el nivel llega a hf.
+  // Tiempo para que el agua deje de salir, partiendo de h0 (alturas en m)
+  function tiempoTeorico(D_cm, d_mm, cd, h0_m, hf_m, g){
+    if(!(h0_m > hf_m) || hf_m < 0) return NaN;
+    const A = areaCirculo(D_cm/100), a = areaCirculo(d_mm/1000);
+    return (A/(cd*a)) * Math.sqrt(2*(h0_m - hf_m)/g);
+  }
+  // La pendiente de √(h − hf) vs t vale −Cd·(a/A)·√(g/2)
+  function cdDesdePendiente(m, D_cm, d_mm, g){
+    const A = areaCirculo(D_cm/100), a = areaCirculo(d_mm/1000);
+    return -m * (A/a) * Math.sqrt(2/g);
+  }
+  const promedio = v => v.reduce((s,x)=>s+x,0) / v.length;
+  function desviacion(v){
+    if(v.length < 2) return NaN;
+    const m = promedio(v);
+    return Math.sqrt(v.reduce((s,x)=>s+(x-m)*(x-m),0) / (v.length-1));
+  }
+  function mediana(v){
+    const s = [...v].sort((x,y)=>x-y), k = s.length >> 1;
+    return s.length % 2 ? s[k] : (s[k-1]+s[k])/2;
+  }
+  function regresion(xs, ys){
+    const n = xs.length;
+    if(n < 3) return null;
+    const mx = promedio(xs), my = promedio(ys);
+    let sxx=0, sxy=0, syy=0;
+    for(let i=0;i<n;i++){ const dx=xs[i]-mx, dy=ys[i]-my; sxx+=dx*dx; sxy+=dx*dy; syy+=dy*dy; }
+    if(sxx === 0 || syy === 0) return null;
+    const m = sxy/sxx;
+    return { m, b: my - m*mx, r2: (sxy*sxy)/(sxx*syy), n };
+  }
+  // Recta √(h − hf) vs t (h en mm). Solo usa puntos con al menos 5 mm de agua sobre el orificio: más abajo el ruido domina la raíz.
+  function regresionRaiz(pts, hf_mm){
+    const us = pts.filter(p => p.h - hf_mm >= 5);
+    return regresion(us.map(p => p.t), us.map(p => Math.sqrt((p.h - hf_mm)/1000)));
+  }
+  const fmt = (x, n=1) => (x == null || !isFinite(x)) ? '—' : x.toFixed(n).replace('.', ',');
+  function gauss(){ let u=0, v=0; while(!u) u=Math.random(); while(!v) v=Math.random(); return Math.sqrt(-2*Math.log(u))*Math.cos(2*Math.PI*v); }
+
+  // ================= Líneas "t_ms;h_mm;contacto" (Arduino y CSV) =================
+  function parsearLinea(linea){
+    const s = linea.trim();
+    if(!s || /[a-df-z]/i.test(s.replace(/e[-+]?\d/gi,''))) return null;
+    const sep = s.includes(';') ? ';' : (s.includes('\t') ? '\t' : ',');
+    const p = s.split(sep).map(x => x.trim().replace(',', '.'));
+    if(p.length < 2) return null;
+    const t = parseFloat(p[0]), h = parseFloat(p[1]);
+    if(!isFinite(t) || !isFinite(h)) return null;
+    const c = p.length > 2 ? parseInt(p[2], 10) : NaN;
+    return { t, h, c: (c === 0 || c === 1) ? c : null };
+  }
+
+  // ================= Procesador: filtro + detección de inicio y fin =================
+  class Procesador {
+    constructor(cfg, eventos){ this.cfg = cfg; this.ev = eventos; this.reiniciar(); }
+    reiniciar(){
+      this.estado = 'libre';
+      this.ventana = []; this.ultimoAceptado = null; this.saltosSeguidos = 0;
+      this.base = []; this.hRef = null; this.t0 = null; this.hInicio = null;
+      this.puntos = []; this.crudos = [];
+      this.contactoVisto = false; this.cerosSeguidos = 0; this.tPrimerCero = null; this.tBajoNivel = null;
+      this.hActual = null; this.descartadas = 0; this.resultado = null;
+    }
+    armar(){ this.reiniciar(); this.estado = 'armado'; this.ev.estado('esperando'); }
+    push(m){
+      let valida = m.h >= 0 && m.h <= 400;
+      if(valida && this.ultimoAceptado !== null && Math.abs(m.h - this.ultimoAceptado) > 10){
+        this.saltosSeguidos++;
+        if(this.saltosSeguidos < 3) valida = false;   // salto brusco: probable eco falso
+      }
+      let filtrada = null;
+      if(!valida){ this.descartadas++; }
+      else {
+        this.saltosSeguidos = 0; this.ultimoAceptado = m.h;
+        this.ventana.push({ t: m.t, h: m.h });
+        if(this.ventana.length > 5) this.ventana.shift();
+        if(this.ventana.length === 5){               // mediana de 5, fechada en la muestra central
+          filtrada = { t: this.ventana[2].t, h: mediana(this.ventana.map(v=>v.h)) };
+          this.hActual = filtrada.h;
+        }
+      }
+      if(this.estado === 'midiendo' || this.estado === 'armado') this.crudos.push(m);
+      this.ev.muestra(m, filtrada, valida);
+
+      if(this.estado === 'armado' && filtrada){      // inicio: el nivel baja 3 mm bajo la línea base
+        if(this.base.length < 5){
+          this.base.push(filtrada.h);
+          if(this.base.length === 5) this.hRef = mediana(this.base);
+        } else if(filtrada.h <= this.hRef - 3){
+          this.estado = 'midiendo'; this.t0 = filtrada.t; this.hInicio = filtrada.h;
+          this.puntos = [{ t: 0, h: filtrada.h }];
+          this.ev.estado('midiendo');
+        }
+        return;
+      }
+      if(this.estado !== 'midiendo') return;
+      if(filtrada) this.puntos.push({ t: (filtrada.t - this.t0)/1000, h: filtrada.h });
+
+      const usarContacto = this.cfg.usarContacto;     // fin: el agua deja de salir (contacto seco 2 veces, o nivel en h_f)
+      if(m.c === 1){ this.contactoVisto = true; this.cerosSeguidos = 0; this.tPrimerCero = null; }
+      else if(m.c === 0 && this.contactoVisto){ if(this.cerosSeguidos === 0) this.tPrimerCero = m.t; this.cerosSeguidos++; }
+      const hf_mm = this.cfg.hf_cm * 10;
+      if(usarContacto && this.contactoVisto && this.cerosSeguidos >= 2){
+        this.terminar(this.tPrimerCero, 'contacto');
+      } else if(filtrada){
+        // Respaldo sin sensor de contacto: cerca del orificio el nivel baja cada vez más lento y el ruido no deja ver
+        // el instante exacto en que llega a h_f. Cuando el nivel ya está a 1 mm de h_f, el fin se calcula con la recta
+        // √(h − h_f): el agua deja de salir cuando esa recta llega a cero. Si hay sensor de contacto, se le da 1 minuto.
+        if(filtrada.h <= hf_mm + 1){ if(this.tBajoNivel === null) this.tBajoNivel = filtrada.t; }
+        else if(filtrada.h > hf_mm + 3) this.tBajoNivel = null;
+        if(this.tBajoNivel !== null && filtrada.t - this.tBajoNivel >= (usarContacto ? 60000 : 3000)){
+          const reg = regresionRaiz(this.puntos, hf_mm);
+          const tFin = (reg && reg.m < 0) ? this.t0 + (-reg.b/reg.m)*1000 : this.tBajoNivel;
+          this.terminar(tFin, usarContacto ? 'nivel (el sensor de contacto no respondió)' : 'nivel (recta √(h − h_f) llega a 0)');
+        }
+      }
+    }
+    terminar(tFin, motivo){
+      this.estado = 'terminado';
+      const tMedido = (tFin - this.t0)/1000, hf_mm = this.cfg.hf_cm * 10;
+      const pts = this.puntos.filter(p => p.t <= tMedido + 1e-9);
+      const reg = regresionRaiz(pts, hf_mm);
+      this.resultado = { tMedido, hInicio: this.hInicio, motivo, hEnFin: this.hActual, reg, puntos: pts, descartadas: this.descartadas };
+      this.ev.estado('terminado');
+      this.ev.terminado(this.resultado);
+    }
+    detenerManual(){ if(this.estado !== 'terminado'){ this.estado = 'libre'; this.ev.estado('detenido'); } }
+  }
+
+  // ================= Estanque virtual con sensores virtuales =================
+  // El C_d "real" del estanque virtual queda oculto: el estudiante lo descubre con sus datos.
+  class FuenteSimulada {
+    constructor(cfg, velocidad, emitir){ this.cfg = cfg; this.vel = velocidad; this.emitir = emitir; this.timer = null; }
+    iniciar(){
+      const c = this.cfg;
+      this.t = 0;
+      this.hReal = c.h0_cm*10 + (Math.random()*4 - 2);   // llenado con ±2 mm de error
+      this.cdReal = 0.615 + gauss()*0.008;                // cada intento es un poco distinto
+      this.tRetiroCinta = 1500 + Math.random()*1500;      // la cinta se retira a los 1,5–3 s
+      this.abierto = false; this.ticksSeco = 0;
+      this.kReal = this.cdReal * areaCirculo(c.d_mm/1000) / areaCirculo(c.D_cm/100);
+      this.timer = setInterval(() => this.tick(), 100 / this.vel);
+    }
+    get carga(){ return this.hReal - this.cfg.hf_cm*10; }   // mm de agua sobre el borde inferior del orificio
+    tick(){
+      const hf_mm = this.cfg.hf_cm*10;
+      if(this.t >= this.tRetiroCinta){
+        this.abierto = true;
+        for(let i=0;i<10;i++){                           // 10 sub-pasos de 10 ms
+          const carga_m = Math.max(this.carga/1000, 0);
+          this.hReal = Math.max(hf_mm, this.hReal - this.kReal * Math.sqrt(2*G_REAL*carga_m) * 0.01 * 1000);
+        }
+      }
+      this.t += 100;
+      let h = this.hReal + gauss()*1.2;                   // ruido del sensor ultrasónico
+      if(Math.random() < 0.015) h += 60;                  // eco falso ocasional
+      if(Math.random() < 0.005) h = -1;                   // lectura sin eco
+      const contacto = this.carga > 0.001 ? 1 : 0;        // el sensor está a la altura del borde inferior del orificio
+      this.emitir({ t: this.t, h: Math.round(h*10)/10, c: contacto });
+      if(contacto === 0 && ++this.ticksSeco > 15) this.detener();   // el agua ya no sale: se sigue midiendo 1,5 s y se detiene
+    }
+    detener(){ if(this.timer){ clearInterval(this.timer); this.timer = null; } }
+  }
+
+  // ================= Arduino (Web Serial API) =================
+  class FuenteSerial {
+    constructor(alLinea, alCambio){ this.alLinea = alLinea; this.alCambio = alCambio; this.port = null; }
+    async conectar(){
+      this.port = await navigator.serial.requestPort();
+      await this.port.open({ baudRate: 115200 });
+      this.alCambio(true);
+      this.leer();
+    }
+    async leer(){
+      const decoder = new TextDecoderStream();
+      this.cierre = this.port.readable.pipeTo(decoder.writable).catch(()=>{});
+      this.reader = decoder.readable.getReader();
+      let buf = '';
+      try {
+        for(;;){
+          const { value, done } = await this.reader.read();
+          if(done) break;
+          buf += value;
+          let i;
+          while((i = buf.indexOf('\n')) >= 0){ const linea = buf.slice(0, i); buf = buf.slice(i+1); this.alLinea(linea); }
+        }
+      } catch(e){ /* cable desconectado o lectura cancelada */ }
+      finally { try{ this.reader.releaseLock(); }catch(e){} this.alCambio(false); }
+    }
+    async desconectar(){
+      try{ if(this.reader) await this.reader.cancel(); if(this.cierre) await this.cierre; if(this.port) await this.port.close(); }catch(e){}
+      this.port = null; this.alCambio(false);
+    }
+  }
+
+  // ================= Estado de la aplicación =================
+  const $ = id => document.getElementById(id);
+  const app = {
+    modo: 'sim', paso: 1, cfg: null, prediccion: null,
+    intentos: [], seleccionado: null,
+    proc: null, sim: null, serial: null, conectado: false,
+    csvTexto: null, csvNombre: '', videoUrl: null, videoNombre: '',
+    gMedida: null, pendiente: null,
+    visual: { h: null, lectura: null, contacto: null, abierto: false },
+  };
+  const CLAVE = 'labfluids.v3.1';          // v3.1: alturas desde la base y orificio en h_f (los intentos de la v3 no son comparables)
+  function guardarLocal(){ try{ localStorage.setItem(CLAVE, JSON.stringify(app.intentos)); }catch(e){} }
+  function cargarLocal(){ try{ const v = JSON.parse(localStorage.getItem(CLAVE) || '[]'); if(Array.isArray(v)) app.intentos = v; }catch(e){} }
+
+  // ================= Paso 1: configuración =================
+  function leerConfig(){
+    const num = id => parseFloat($(id).value);
+    const cfg = { D_cm: num('D'), d_mm: num('d'), h0_cm: num('h0'), hf_cm: num('hf'), T: num('T'), cd: num('cd'), usarContacto: $('usarContacto').checked,
+                  g: ($('usarG').checked && app.gMedida) ? app.gMedida.g : 9.81 };
+    const errores = [];
+    if(!(cfg.D_cm >= 3 && cfg.D_cm <= 40)) errores.push('El diámetro del estanque debe estar entre 3 y 40 cm.');
+    if(!(cfg.d_mm >= 1 && cfg.d_mm <= 20)) errores.push('El diámetro del orificio debe estar entre 1 y 20 mm.');
+    if(!(cfg.hf_cm >= 0.5)) errores.push('La altura del orificio h_f debe ser de al menos 0,5 cm.');
+    if(!(cfg.h0_cm >= cfg.hf_cm + 1 && cfg.h0_cm <= 30)) errores.push('La altura inicial debe estar al menos 1 cm sobre el orificio (h_f) y no pasar de 30 cm.');
+    if(!(cfg.cd > 0.3 && cfg.cd <= 1)) errores.push('C_d debe estar entre 0,3 y 1.');
+    if(cfg.d_mm >= cfg.D_cm*10) errores.push('El orificio no puede ser más grande que el estanque.');
+    return { cfg, errores };
+  }
+  function elegirModo(modo){
+    app.modo = modo;
+    document.querySelectorAll('.modo').forEach(b => b.setAttribute('aria-pressed', String(b.dataset.modo === modo)));
+    $('panelSim').classList.toggle('oculto', modo !== 'sim');
+    $('panelVideo').classList.toggle('oculto', modo !== 'video');
+    $('panelArduino').classList.toggle('oculto', modo !== 'arduino');
+    $('panelCsv').classList.toggle('oculto', modo !== 'csv');
+    $('sinSerial').classList.toggle('oculto', 'serial' in navigator);
+    $('btnConectar').disabled = !('serial' in navigator) || app.conectado;
+  }
+  function marcarPaso(n){
+    app.paso = n;
+    [1,2,3].forEach(k => $('paso'+k).classList.toggle('activo', k === n));
+    document.querySelectorAll('nav.pasos button').forEach(b => { if(Number(b.dataset.ir) === n) b.setAttribute('aria-current','step'); else b.removeAttribute('aria-current'); });
+    window.scrollTo({ top: 0 });
+  }
+  function irAPaso(n){
+    if(n === 2 && !prepararMedicion()) return;
+    marcarPaso(n);
+    if(n === 3) dibujarResultados();
+  }
+  const claveCondicion = (d_mm, h0_cm) => `${d_mm}|${h0_cm}`;
+  function prepararMedicion(){
+    const { cfg, errores } = leerConfig();
+    if(app.modo === 'arduino' && !app.conectado) errores.push('Conecta el Arduino antes de medir (o usa el laboratorio virtual).');
+    if(app.modo === 'csv' && !app.csvTexto) errores.push('Elige un archivo CSV antes de continuar.');
+    if(app.modo === 'video' && !app.videoUrl) errores.push('Elige o graba un video antes de continuar.');
+    const caja = $('errorConfig');
+    if(errores.length){ caja.innerHTML = errores.join('<br>'); caja.classList.remove('oculto'); marcarPaso(1); return false; }
+    caja.classList.add('oculto');
+    app.cfg = cfg;
+    const p = parseFloat($('prediccion').value);
+    app.prediccion = isFinite(p) ? p : null;
+    $('condicionTxt').textContent = `d = ${fmt(cfg.d_mm,1)} mm · h₀ = ${fmt(cfg.h0_cm,1)} cm · D = ${fmt(cfg.D_cm,1)} cm`;
+    actualizarTextoIntento();
+    const video = app.modo === 'video';
+    $('medirSensores').classList.toggle('oculto', video);
+    $('medirVideo').classList.toggle('oculto', !video);
+    $('resumenIntento').classList.add('oculto');
+    $('estadoMedicion').innerHTML = '<span class="punto"></span>Listo para iniciar';
+    $('btnProcesarCsv').classList.toggle('oculto', app.modo !== 'csv');
+    $('btnIniciar').classList.toggle('oculto', app.modo === 'csv');
+    $('btnDetener').classList.toggle('oculto', app.modo === 'csv');
+    $('badgeFuente').textContent = { sim: 'Sensores virtuales', arduino: 'Sensores reales (Arduino)', csv: 'Datos de archivo' }[app.modo] || '';
+    $('instruccion').className = 'aviso';
+    $('instruccion').textContent = app.modo === 'csv' ? `Archivo: ${app.csvNombre}. Presiona «Procesar archivo».`
+      : app.modo === 'sim' ? 'Presiona «Iniciar intento». En el estanque virtual la cinta del orificio se retira sola a los pocos segundos.'
+      : 'Tapa el orificio y llena hasta h₀. Presiona «Iniciar intento» y luego retira la cinta.';
+    app.visual = { h: cfg.h0_cm, lectura: null, contacto: null, abierto: false };
+    reiniciarGraficoVivo();
+    tOrigenGrafico = null;
+    if(app.modo === 'arduino') app.proc = new Procesador(cfg, eventosProc);
+    if(video) videoPreparar();
+    return true;
+  }
+  function actualizarTextoIntento(){
+    const c = app.cfg;
+    const n = app.intentos.filter(x => x.incluido && claveCondicion(x.d_mm, x.h0nom_cm) === claveCondicion(c.d_mm, c.h0_cm)).length;
+    $('intentoTxt').textContent = n < 5 ? `Intento ${n+1} de 5 para esta condición (se necesitan al menos 5 repeticiones).`
+                                        : `Intento ${n+1}: ya tienes ${n} repeticiones de esta condición (el mínimo son 5).`;
+  }
+
+  // ================= Sensor del celular: acelerómetro =================
+  async function medirG(){
+    const salida = $('resultadoG');
+    if(typeof window.DeviceMotionEvent === 'undefined'){ salida.textContent = 'Este navegador no tiene acceso al acelerómetro. Se usa g = 9,81 m/s².'; return; }
+    try{
+      if(typeof DeviceMotionEvent.requestPermission === 'function'){   // iPhone: pide permiso
+        const r = await DeviceMotionEvent.requestPermission();
+        if(r !== 'granted'){ salida.textContent = 'No se dio permiso para usar el acelerómetro. Se usa g = 9,81 m/s².'; return; }
+      }
+    }catch(e){ salida.textContent = 'No se pudo pedir permiso para el acelerómetro. Se usa g = 9,81 m/s².'; return; }
+    const muestras = [];
+    const alMover = e => { const a = e.accelerationIncludingGravity; if(a && a.x != null && a.y != null && a.z != null) muestras.push(Math.hypot(a.x, a.y, a.z)); };
+    window.addEventListener('devicemotion', alMover);
+    $('btnMedirG').disabled = true;
+    salida.textContent = 'Midiendo… deja el celular quieto.';
+    await new Promise(r => setTimeout(r, 3000));
+    window.removeEventListener('devicemotion', alMover);
+    $('btnMedirG').disabled = false;
+    if(muestras.length < 10){ salida.textContent = 'No llegaron datos del acelerómetro. En un computador es normal: prueba en un celular. Se usa g = 9,81 m/s².'; return; }
+    const g = promedio(muestras), s = desviacion(muestras);
+    app.gMedida = { g, s, n: muestras.length };
+    const err = (g - 9.81)/9.81*100;
+    salida.innerHTML = `g medida = <b>${fmt(g,3)} ± ${fmt(s,3)} m/s²</b> (${muestras.length} lecturas). Diferencia con 9,81: ${err > 0 ? '+' : ''}${fmt(err,1)} %.`;
+    $('filaUsarG').classList.remove('oculto');
+  }
+
+  // ================= Paso 2: animación del estanque =================
+  const lienzo = $('estanque'), ctx = lienzo.getContext('2d');
+  function dibujarEstanque(){
+    const W = lienzo.width, H = lienzo.height, c = app.cfg || { D_cm: 8, d_mm: 5, hf_cm: 2, h0_cm: 16 };
+    const v = app.visual;
+    ctx.clearRect(0,0,W,H);
+    const fondo = ctx.createLinearGradient(0,0,0,H); fondo.addColorStop(0,'#f4f9fb'); fondo.addColorStop(1,'#e2eff5');
+    ctx.fillStyle = fondo; ctx.fillRect(0,0,W,H);
+    const tx = 150, tw = 250, ty = 120, tBase = 470, H_CM = 22;       // estanque: 22 cm de alto dibujados
+    const pxCm = (tBase - ty) / H_CM;
+    const yDe = h => tBase - h*pxCm;                                  // alturas medidas desde la base
+    // orificio a escala: su borde inferior está en h_f, a la misma altura que el sensor de contacto
+    const yInf = yDe(c.hf_cm), ySupO = Math.min(yDe(c.hf_cm + c.d_mm/10), yInf - 3), yCen = (yInf + ySupO)/2;
+    // graduaciones desde la base
+    ctx.font = '14px Nunito, Segoe UI, Arial'; ctx.textAlign = 'right';
+    for(let h=0; h<=20; h+=2){
+      const y = yDe(h);
+      ctx.strokeStyle = 'rgba(91,114,134,0.35)'; ctx.beginPath(); ctx.moveTo(tx-10,y); ctx.lineTo(tx,y); ctx.stroke();
+      ctx.fillStyle = 'rgba(91,114,134,0.8)'; ctx.fillText(h+' cm', tx-14, y+4);
+    }
+    ctx.font = '13px Nunito, Segoe UI, Arial'; ctx.fillStyle = 'rgba(91,114,134,0.8)';
+    ctx.fillText('altura desde', tx-8, yDe(20)-30); ctx.fillText('la base', tx-8, yDe(20)-14);
+    // agua
+    const hAgua = v.h == null ? 0 : Math.max(v.h, 0);
+    const ySup = Math.max(ty, yDe(hAgua));
+    if(ySup < tBase){
+      const gA = ctx.createLinearGradient(0, ySup, 0, tBase); gA.addColorStop(0,'rgba(124,200,239,0.9)'); gA.addColorStop(1,'rgba(43,140,196,0.95)');
+      ctx.fillStyle = gA; ctx.fillRect(tx+2, ySup, tw-4, tBase-ySup);
+      ctx.strokeStyle = 'rgba(255,255,255,0.4)'; ctx.lineWidth = 2; ctx.beginPath();
+      const fase = performance.now()/500;
+      for(let x=0; x<=tw-4; x+=6){ const yy = ySup + Math.sin(x*0.09 + fase)*2; if(x===0) ctx.moveTo(tx+2+x,yy); else ctx.lineTo(tx+2+x,yy); }
+      ctx.stroke(); ctx.lineWidth = 1;
+    }
+    // paredes (abierto arriba) con el orificio a la derecha
+    ctx.strokeStyle = '#1b6a99'; ctx.lineWidth = 4; ctx.beginPath();
+    ctx.moveTo(tx, ty); ctx.lineTo(tx, tBase); ctx.lineTo(tx+tw, tBase); ctx.lineTo(tx+tw, yInf);
+    ctx.moveTo(tx+tw, ySupO); ctx.lineTo(tx+tw, ty); ctx.stroke(); ctx.lineWidth = 1;
+    // cinta o chorro: sale mientras el agua está sobre el borde inferior del orificio
+    const carga = hAgua - c.hf_cm;
+    if(!v.abierto){ ctx.fillStyle = '#9aa5b8'; ctx.fillRect(tx+tw-2, yCen-10, 8, 20); }
+    else if(carga > 0.005){
+      const vel = Math.sqrt(2*G_REAL*carga/100), ppm = pxCm*100;
+      ctx.strokeStyle = 'rgba(43,140,196,0.85)'; ctx.lineWidth = Math.max(2, Math.min(c.d_mm*0.9, carga*pxCm)); ctx.lineCap = 'round'; ctx.beginPath();
+      for(let s=0; s<=0.35; s+=0.01){ const x = tx+tw + vel*s*ppm*0.45, y = yCen + 0.5*G_REAL*s*s*ppm*0.45; if(y > H-10 || x > W-10) break; if(s===0) ctx.moveTo(x,y); else ctx.lineTo(x,y); }
+      ctx.stroke(); ctx.lineWidth = 1; ctx.lineCap = 'butt';
+    }
+    ctx.fillStyle = '#b06a00'; ctx.textAlign = 'left'; ctx.font = '600 15px Nunito, Segoe UI, Arial'; ctx.fillText('orificio d = ' + fmt(c.d_mm,1) + ' mm', tx+tw+14, ySupO-12);
+    // sensor de contacto a la altura del borde inferior del orificio (la línea punteada llega justo a ese borde)
+    ctx.setLineDash([5,4]); ctx.strokeStyle = 'rgba(245,158,11,0.8)'; ctx.beginPath(); ctx.moveTo(tx, yInf); ctx.lineTo(tx+tw+10, yInf); ctx.stroke(); ctx.setLineDash([]);
+    ctx.fillStyle = '#f59e0b'; ctx.fillRect(tx+4, yInf-18, 9, 18);
+    const ledOn = v.contacto === 0;
+    ctx.beginPath(); ctx.arc(tx-86, yInf, 10, 0, Math.PI*2); ctx.fillStyle = ledOn ? '#2fa56d' : '#cfe0e8'; ctx.fill();
+    if(ledOn){ ctx.beginPath(); ctx.arc(tx-86, yInf, 17, 0, Math.PI*2); ctx.fillStyle = 'rgba(47,165,109,0.25)'; ctx.fill(); }
+    ctx.fillStyle = 'rgba(29,53,80,0.85)'; ctx.textAlign = 'left'; ctx.font = '14px Nunito, Segoe UI, Arial';
+    ctx.fillText('LED', tx-100, yInf+30);
+    // sensor ultrasónico arriba, centrado
+    const sx = tx + tw/2, sy = 52;
+    ctx.fillStyle = '#2E75B6'; ctx.fillRect(sx-40, sy-14, 80, 22);
+    [sx-18, sx+18].forEach(cx => { ctx.beginPath(); ctx.arc(cx, sy+12, 9, 0, Math.PI*2); ctx.fillStyle = '#e6edf7'; ctx.fill(); ctx.strokeStyle = '#1F3864'; ctx.stroke(); });
+    ctx.fillStyle = 'rgba(29,53,80,0.9)'; ctx.textAlign = 'center'; ctx.font = '600 16px Nunito, Segoe UI, Arial';
+    ctx.fillText('Sensor ultrasónico', sx, sy-22);
+    if(v.lectura != null && isFinite(v.lectura) && v.lectura >= 0){
+      const yL = yDe(v.lectura);
+      ctx.setLineDash([3,5]); ctx.strokeStyle = 'rgba(43,140,196,0.8)'; ctx.beginPath(); ctx.moveTo(sx, sy+22); ctx.lineTo(sx, yL); ctx.stroke(); ctx.setLineDash([]);
+      const fase = (performance.now()/300) % 1;                       // "pings" que bajan
+      ctx.strokeStyle = `rgba(43,140,196,${0.6*(1-fase)})`; ctx.beginPath(); ctx.arc(sx, sy+22 + fase*(yL-sy-22), 14, 0.15*Math.PI, 0.85*Math.PI); ctx.stroke();
+      ctx.fillStyle = '#1b6a99'; ctx.textAlign = 'left'; ctx.font = '600 16px Nunito, Segoe UI, Arial';
+      ctx.fillText('lectura: ' + fmt(v.lectura,1) + ' cm', sx+10, Math.min(yL-8, tBase-8));
+    }
+    ctx.textAlign = 'left'; ctx.font = '15px Nunito, Segoe UI, Arial'; ctx.fillStyle = 'rgba(91,114,134,0.9)';
+    ctx.fillText('Estanque abierto · D = ' + fmt(c.D_cm,1) + ' cm', tx, tBase+26);
+    ctx.fillText('Sensor de contacto (borde del orificio, ' + fmt(c.hf_cm,1) + ' cm): ' + (v.contacto === 1 ? 'mojado' : v.contacto === 0 ? 'seco (fin)' : '—'), tx, tBase+44);
+  }
+  function bucleDibujo(){ if(app.paso === 2 && app.modo !== 'video') dibujarEstanque(); requestAnimationFrame(bucleDibujo); }
+
+  // ================= Paso 2: gráfico en vivo y medición =================
+  let graficoVivo = null, tOrigenGrafico = null, enLote = false;
+  const COLOR_EJES = 'rgba(91,114,134,0.9)', COLOR_GRILLA = 'rgba(91,114,134,0.14)';
+  const escalas = (tx, ty) => ({ x: { title: { display: true, text: tx, color: COLOR_EJES }, min: 0, ticks: { color: COLOR_EJES }, grid: { color: COLOR_GRILLA } },
+                                y: { title: { display: true, text: ty, color: COLOR_EJES }, ticks: { color: COLOR_EJES }, grid: { color: COLOR_GRILLA } } });
+  function reiniciarGraficoVivo(){
+    const hf = app.cfg ? app.cfg.hf_cm : 2;
+    const datos = { datasets: [
+      { label: 'Lecturas del sensor', data: [], showLine: false, pointRadius: 1.6, backgroundColor: '#9fb3c3', borderColor: '#9fb3c3', order: 3 },
+      { label: 'Altura filtrada h(t)', data: [], showLine: true, pointRadius: 0, borderColor: '#2b8cc4', backgroundColor: '#2b8cc4', borderWidth: 3, order: 0 },
+      { label: 'Modelo de Torricelli', data: [], showLine: true, pointRadius: 0, borderColor: '#f59e0b', backgroundColor: '#f59e0b', borderDash: [6,4], borderWidth: 2, order: 1 },
+      { label: 'h_f (orificio y sensor)', data: [{x:0,y:hf},{x:10,y:hf}], showLine: true, pointRadius: 0, borderColor: '#e0585b', backgroundColor: '#e0585b', borderDash: [3,4], borderWidth: 1.5, order: 2 },
+    ] };
+    if(graficoVivo){ graficoVivo.data = datos; graficoVivo.update('none'); return; }
+    graficoVivo = new Chart($('graficoVivo'), { type: 'scatter', data: datos,
+      options: { animation: false, responsive: true, maintainAspectRatio: false, plugins: { legend: { position: 'bottom', labels: { color: COLOR_EJES } } }, scales: Object.assign(escalas('t (s)', 'h (cm)'), {}) } });
+    graficoVivo.options.scales.y.min = 0;
+  }
+  function curvaModelo(h0_mm){           // h(t) del modelo desde el inicio del cronómetro: √(h − hf) baja en línea recta
+    const c = app.cfg, g = gModelo(), hf = c.hf_cm/100;
+    const k = c.cd * areaCirculo(c.d_mm/1000) / areaCirculo(c.D_cm/100) * Math.sqrt(g/2);
+    const r0 = Math.sqrt(Math.max(h0_mm/1000 - hf, 0)), tFin = r0/k, pts = [];
+    for(let i=0; i<=60; i++){ const t = tFin*i/60, r = r0 - k*t; pts.push({ x: t, y: (hf + r*r)*100 }); }
+    return pts;
+  }
+  const eventosProc = {
+    muestra(m, filtrada, valida){
+      if(tOrigenGrafico === null) tOrigenGrafico = m.t;
+      const proc = app.proc, tRef = (proc && proc.t0 !== null) ? proc.t0 : tOrigenGrafico, ds = graficoVivo.data.datasets;
+      if(valida && m.h >= 0) ds[0].data.push({ x: (m.t - tRef)/1000, y: m.h/10 });
+      if(filtrada) ds[1].data.push({ x: (filtrada.t - tRef)/1000, y: filtrada.h/10 });
+      if(!proc || proc.estado === 'libre'){ [0,1].forEach(i => { if(ds[i].data.length > 300) ds[i].data.splice(0, ds[i].data.length - 300); }); }
+      const ultimo = ds[0].data.length ? ds[0].data[ds[0].data.length-1].x : 0;
+      ds[3].data[1].x = Math.max(10, ultimo, ds[2].data.length ? ds[2].data[ds[2].data.length-1].x : 0);
+      const hMostrar = (proc && proc.hActual !== null) ? proc.hActual : (valida ? m.h : null);
+      $('kAltura').textContent = hMostrar !== null ? fmt(hMostrar/10, 1) + ' cm' : '— cm';
+      $('kContacto').textContent = m.c === 1 ? 'mojado' : (m.c === 0 ? 'seco' : '—');
+      $('kDescartes').textContent = proc ? proc.descartadas : 0;
+      if(proc && proc.estado === 'midiendo') $('kTiempo').textContent = fmt((m.t - proc.t0)/1000, 1) + ' s';
+      app.visual.lectura = valida ? m.h/10 : app.visual.lectura;
+      app.visual.contacto = m.c;
+      if(app.sim){ app.visual.h = app.sim.hReal/10; app.visual.abierto = app.sim.abierto; }
+      else { app.visual.h = hMostrar !== null ? hMostrar/10 : app.visual.h; app.visual.abierto = !!(proc && proc.estado === 'midiendo'); }
+      if(!enLote) graficoVivo.update('none');
+    },
+    estado(e){
+      const mapa = { esperando: ['med','Esperando que baje el nivel…'], midiendo: ['on','Midiendo'], terminado: ['on','Ensayo terminado'], detenido: ['err','Detenido'] };
+      const [cls, txt] = mapa[e] || ['', 'Listo para iniciar'];
+      $('estadoMedicion').innerHTML = `<span class="punto ${cls}"></span>${txt}`;
+      if(e === 'midiendo'){
+        const t0 = app.proc.t0;
+        graficoVivo.data.datasets[0].data = app.proc.crudos.filter(m => m.h >= 0).map(m => ({ x: (m.t - t0)/1000, y: m.h/10 }));
+        graficoVivo.data.datasets[1].data = [{ x: 0, y: app.proc.hInicio/10 }];
+        graficoVivo.data.datasets[2].data = curvaModelo(app.proc.hInicio);
+        $('instruccion').textContent = 'El agua está saliendo. El ensayo termina solo cuando el agua llega al orificio y el sensor de contacto queda seco.';
+      }
+      if(e === 'terminado' || e === 'detenido'){
+        $('btnDetener').disabled = true; $('btnIniciar').disabled = false;
+        if(app.sim) app.sim.detener();
+        if(e === 'terminado' && navigator.vibrate){ try{ navigator.vibrate(150); }catch(err){} }
+      }
+    },
+    terminado(r){ mostrarResultadoIntento(r); },
+  };
+  function iniciarIntento(){
+    if(!app.cfg) return;
+    $('resumenIntento').classList.add('oculto');
+    app.pendiente = null; tOrigenGrafico = null;
+    reiniciarGraficoVivo();
+    $('kTiempo').textContent = '0,0 s';
+    app.proc = new Procesador(app.cfg, eventosProc);
+    app.proc.armar();
+    $('btnIniciar').disabled = true; $('btnDetener').disabled = false;
+    if(app.modo === 'sim'){
+      if(app.sim) app.sim.detener();
+      app.sim = new FuenteSimulada(app.cfg, Number($('velocidad').value), m => app.proc && app.proc.push(m));
+      app.visual = { h: app.cfg.h0_cm, lectura: null, contacto: 1, abierto: false };
+      app.sim.iniciar();
+    } else {
+      app.sim = null;
+      $('instruccion').textContent = 'Ahora retira la cinta del orificio. El cronómetro parte solo cuando el nivel baja 3 mm.';
+    }
+  }
+  function detenerIntento(){
+    if(app.sim) app.sim.detener();
+    if(app.proc) app.proc.detenerManual();
+    $('instruccion').textContent = 'Intento detenido: no se guarda. Presiona «Iniciar intento» para repetir.';
+  }
+  function procesarCsv(){
+    tOrigenGrafico = null; reiniciarGraficoVivo();
+    app.sim = null;
+    app.proc = new Procesador(app.cfg, eventosProc); app.proc.armar();
+    let leidas = 0; enLote = true;
+    try{ for(const l of app.csvTexto.split(/\r?\n/)){ const m = parsearLinea(l); if(!m) continue; leidas++; app.proc.push(m); if(app.proc.estado === 'terminado') break; } }
+    finally{ enLote = false; graficoVivo.update('none'); }
+    if(app.proc.estado !== 'terminado'){
+      $('instruccion').className = 'aviso error';
+      $('instruccion').textContent = leidas === 0 ? 'No se encontraron líneas con el formato t_ms;h_mm;contacto.' : `Se leyeron ${leidas} líneas, pero el archivo no contiene un vaciado completo (desde h₀ hasta h_f).`;
+    } else { $('instruccion').className = 'aviso'; $('instruccion').textContent = `Archivo procesado: ${leidas} líneas.`; }
+  }
+
+  // ================= Resultado de un intento (común a todos los modos) =================
+  function mostrarResultadoIntento(r, fuenteForzada){
+    const c = app.cfg, g = gModelo();
+    const tTeo = tiempoTeorico(c.D_cm, c.d_mm, c.cd, r.hInicio/1000, c.hf_cm/100, g);
+    const tIdeal = tiempoTeorico(c.D_cm, c.d_mm, 1, r.hInicio/1000, c.hf_cm/100, g);
+    const error = (r.tMedido - tTeo)/tTeo*100;
+    const cdExp = r.reg ? cdDesdePendiente(r.reg.m, c.D_cm, c.d_mm, g) : NaN;
+    let fuente = fuenteForzada || app.modo;
+    if(app.modo === 'csv' && /simulad/i.test(app.csvTexto.split('\n').slice(0, 3).join(' '))) fuente = 'sim';
+    app.pendiente = {
+      id: Date.now(), fecha: new Date().toISOString(), fuente,
+      D_cm: c.D_cm, d_mm: c.d_mm, h0nom_cm: c.h0_cm, hf_cm: c.hf_cm, T: c.T, cdRef: c.cd, g,
+      h0med_cm: r.hInicio/10, tMedido: r.tMedido, tTeorico: tTeo, tIdeal, error, cdExp, r2: r.reg ? r.reg.r2 : NaN,
+      motivo: r.motivo, hEnFin_cm: r.hEnFin/10, descartadas: r.descartadas,
+      prediccion: app.prediccion, incluido: true,
+      puntos: r.puntos.map(p => [Math.round(p.t*1000)/1000, Math.round(p.h*10)/10]),
+      archivo: app.modo === 'csv' ? app.csvNombre : app.modo === 'video' ? app.videoNombre : undefined,
+    };
+    $('rMedido').textContent = fmt(r.tMedido, 1) + ' s';
+    $('rTeorico').textContent = fmt(tTeo, 1) + ' s';
+    $('rError').textContent = (error > 0 ? '+' : '') + fmt(error, 1) + ' %';
+    $('rCd').textContent = fmt(cdExp, 3);
+    if(fuente !== 'video') $('kTiempo').textContent = fmt(r.tMedido, 1) + ' s';
+    let detalle = `Altura al iniciar el cronómetro: ${fmt(r.hInicio/10, 1)} cm. Fin por: ${r.motivo}. Con g = ${fmt(g,2)} m/s². Sin C_d (flujo ideal) habría tardado ${fmt(tIdeal, 1)} s.`;
+    if(r.motivo === 'contacto') detalle += ` Verificación: cuando el sensor de contacto se secó, el sensor ultrasónico marcaba ${fmt(r.hEnFin/10, 1)} cm (orificio en h_f = ${fmt(c.hf_cm, 1)} cm).`;
+    if(r.reg) detalle += ` Ajuste √(h − h_f) vs t: R² = ${fmt(r.reg.r2, 4)} con ${r.reg.n} puntos.`;
+    $('rDetalle').textContent = detalle;
+    const avisos = [];
+    if(r.motivo.startsWith('nivel (')) avisos.push('El sensor de contacto no se secó cuando el agua llegó al orificio: revisa que esté a la altura del borde inferior del orificio.');
+    if(r.reg && r.reg.r2 < 0.98) avisos.push('Los puntos √(h − h_f) vs t no forman una recta limpia (R² < 0,98): revisa si hubo golpes, burbujas o puntos mal marcados.');
+    if(Math.abs(error) > 10) avisos.push('El error supera el 10 %: revisa D y d, y que el orificio no tenga rebabas.');
+    $('rAviso').innerHTML = avisos.join('<br>');
+    $('rAviso').classList.toggle('oculto', avisos.length === 0);
+    $('resumenIntento').classList.remove('oculto');
+    if(fuente !== 'video'){ $('instruccion').className = 'aviso ok'; $('instruccion').textContent = 'Ensayo terminado. Guarda el intento (o descártalo) y vuelve a iniciar.'; }
+    $('resumenIntento').scrollIntoView({ behavior: 'smooth', block: 'nearest' });
+  }
+  function guardarIntento(){
+    if(!app.pendiente) return;
+    app.intentos.push(app.pendiente); app.seleccionado = app.pendiente.id; app.pendiente = null;
+    guardarLocal();
+    $('resumenIntento').classList.add('oculto');
+    actualizarTextoIntento();
+    if(app.modo === 'video'){ videoReiniciarPuntos(); }
+    else { $('instruccion').className = 'aviso'; $('instruccion').textContent = 'Intento guardado. Presiona «Iniciar intento» para la siguiente repetición.'; }
+  }
+
+  // ================= Modo video: medir la altura en un video del celular =================
+  const vid = { el: $('video'), lienzo: $('lienzoVideo'), etapa: 'cargar', y0: null, y1: null, cmPx: null, t0: null, puntos: [], listo: false };
+  const vctx = vid.lienzo.getContext('2d');
+  function videoCargar(url){
+    vid.listo = false;
+    vid.el.src = url; vid.el.load();
+    vid.el.play().then(() => vid.el.pause()).catch(() => {});   // en iPhone ayuda a que el video cargue
+  }
+  vid.el.addEventListener('loadedmetadata', () => {
+    const w = vid.el.videoWidth, h = vid.el.videoHeight, s = Math.min(1, 720 / Math.max(w, 1));
+    vid.lienzo.width = Math.round(w*s); vid.lienzo.height = Math.round(h*s);
+    if(!isFinite(vid.el.duration)){ vid.buscandoDuracion = true; vid.el.currentTime = 1e6; return; }  // algunos videos no traen su duración
+    videoListo();
+  });
+  function videoListo(){
+    $('buscador').max = String(vid.el.duration || 1);
+    vid.listo = true;
+    $('infoVideo').textContent = `${app.videoNombre}: ${fmt(vid.el.duration,1)} s, ${vid.el.videoWidth}×${vid.el.videoHeight} px.`;
+    videoIrA(0);
+  }
+  vid.el.addEventListener('seeked', () => {
+    if(vid.buscandoDuracion){ vid.buscandoDuracion = false; videoListo(); return; }
+    videoDibujar();
+  });
+  vid.el.addEventListener('loadeddata', videoDibujar);
+  function videoIrA(t){
+    if(!vid.listo) return;
+    const dur = vid.el.duration || 0;
+    vid.el.currentTime = Math.max(0, Math.min(dur, t));
+  }
+  const yDeH = h => vid.y0 - h / vid.cmPx;           // posición en el cuadro de una altura (cm)
+  function videoDibujar(){
+    if(!vid.listo) return;
+    const W = vid.lienzo.width, H = vid.lienzo.height;
+    try{ vctx.drawImage(vid.el, 0, 0, W, H); }catch(e){ return; }
+    const t = vid.el.currentTime;
+    $('tVideo').textContent = fmt(t, 1) + ' s';
+    $('buscador').value = String(t);
+    $('tDesdeInicio').textContent = vid.t0 != null ? `t desde el inicio: ${fmt(t - vid.t0, 1)} s` : '';
+    const linea = (y, color, texto, dash) => { vctx.save(); vctx.strokeStyle = color; vctx.lineWidth = 2; if(dash) vctx.setLineDash(dash); vctx.beginPath(); vctx.moveTo(0, y); vctx.lineTo(W, y); vctx.stroke(); vctx.setLineDash([]); vctx.fillStyle = color; vctx.font = 'bold 14px Nunito, Segoe UI, Arial'; vctx.fillText(texto, 8, y - 6); vctx.restore(); };
+    if(vid.y0 != null) linea(vid.y0, '#f59e0b', '0 cm (base de la botella)');
+    if(vid.y1 != null) linea(vid.y1, '#f59e0b', fmt(parseFloat($('distCal').value),1) + ' cm');
+    if(vid.cmPx && app.cfg) linea(yDeH(app.cfg.hf_cm), '#e0585b', 'orificio (borde inferior) h_f = ' + fmt(app.cfg.hf_cm,1) + ' cm', [6,5]);
+    const aqui = vid.puntos.find(p => Math.abs(p.tv - t) < 0.02);
+    if(aqui) linea(aqui.y, '#2fa56d', 'h = ' + fmt(aqui.h,1) + ' cm');
+  }
+  function videoActualizarUI(){
+    const orden = ['cal0','cal1','inicio','medir'];
+    document.querySelectorAll('#pasosVideo span').forEach(s => {
+      const i = orden.indexOf(s.dataset.e), actual = orden.indexOf(vid.etapa);
+      s.className = i === actual ? 'on' : (i < actual ? 'hecho' : '');
+    });
+    const txt = {
+      cargar: 'Carga un video en el paso 1.',
+      cal0: 'Paso 1: toca en el video la marca 0 cm de la cinta (en la base de la botella).',
+      cal1: `Paso 2: toca la marca de ${fmt(parseFloat($('distCal').value),1)} cm de la cinta (puedes cambiar ese número abajo).`,
+      inicio: 'Paso 3: mueve el video hasta el momento en que se retira la cinta del orificio y presiona «Marcar inicio aquí».',
+      medir: 'Paso 4: toca la superficie del agua. El video avanza solo Δt. Sigue hasta que el agua deje de salir (llega a la línea roja del orificio) y presiona «Terminar y analizar».',
+    };
+    $('instruccionVideo').textContent = txt[vid.etapa];
+    $('btnMarcarInicio').disabled = vid.etapa !== 'inicio';
+    $('btnDeshacer').disabled = vid.puntos.length === 0;
+    $('btnTerminarVideo').disabled = vid.puntos.length < 5;
+    $('puntosVideo').textContent = `${vid.puntos.length} puntos marcados` + (vid.puntos.length ? ` · último: t = ${fmt(vid.puntos[vid.puntos.length-1].t,1)} s, h = ${fmt(vid.puntos[vid.puntos.length-1].h,1)} cm` : '.');
+    videoDibujar();
+  }
+  function videoPreparar(){ if(vid.etapa === 'cargar') vid.etapa = 'cal0'; videoActualizarUI(); }
+  function videoReiniciarPuntos(){ vid.t0 = null; vid.puntos = []; vid.etapa = vid.cmPx ? 'inicio' : 'cal0'; videoActualizarUI(); }
+  function videoToque(yCanvas){               // yCanvas en píxeles del cuadro
+    if(!vid.listo) return;
+    if(vid.etapa === 'cal0'){ vid.y0 = yCanvas; vid.etapa = 'cal1'; }
+    else if(vid.etapa === 'cal1'){
+      const L = parseFloat($('distCal').value);
+      if(!(yCanvas < vid.y0 - 5) || !(L > 0)){ $('instruccionVideo').textContent = 'La segunda marca debe estar más arriba que la marca 0 cm. Toca de nuevo.'; return; }
+      vid.y1 = yCanvas; vid.cmPx = L / (vid.y0 - vid.y1); vid.etapa = 'inicio';
+    }
+    else if(vid.etapa === 'medir'){
+      const tv = vid.el.currentTime, t = tv - vid.t0, h = (vid.y0 - yCanvas) * vid.cmPx;
+      vid.puntos = vid.puntos.filter(p => Math.abs(p.tv - tv) > 0.02);   // un punto por instante
+      vid.puntos.push({ tv, t, y: yCanvas, h });
+      vid.puntos.sort((a,b) => a.t - b.t);
+      videoIrA(tv + parseFloat($('paso').value));
+    }
+    videoActualizarUI();
+  }
+  function videoMarcarInicio(){ vid.t0 = vid.el.currentTime; vid.puntos = []; vid.etapa = 'medir'; videoActualizarUI(); }
+  function videoAnalizar(){
+    const c = app.cfg, pts = vid.puntos.slice().sort((a,b) => a.t - b.t).filter(p => p.t >= 0);
+    const hf = c.hf_cm;
+    if(pts.length < 5 || pts[0].h <= hf + 0.5){ $('instruccionVideo').textContent = 'Faltan puntos: marca al menos 5, empezando bien arriba de la línea roja del orificio.'; return; }
+    if(pts[pts.length-1].h > hf + 0.5){ $('instruccionVideo').textContent = 'El agua todavía sale: sigue marcando puntos hasta que el nivel llegue a la línea roja del orificio.'; return; }
+    const enMm = pts.map(p => ({ t: p.t, h: p.h*10 }));
+    const reg = regresionRaiz(enMm, hf*10);
+    if(!reg || !(reg.m < 0)){ $('instruccionVideo').textContent = 'No se pudo ajustar la recta √(h − h_f): revisa la calibración y los puntos marcados.'; return; }
+    // Cerca del orificio el nivel baja cada vez más lento y es difícil marcar el instante exacto:
+    // el agua deja de salir cuando la recta √(h − h_f) llega a cero.
+    const tFin = -reg.b / reg.m;
+    mostrarResultadoIntento({ tMedido: tFin, hInicio: pts[0].h*10, motivo: 'video (fin: la recta √(h − h_f) llega a 0)', hEnFin: hf*10, reg,
+      puntos: enMm.filter(p => p.t <= tFin + 1e-9), descartadas: 0 }, 'video');
+  }
+  vid.lienzo.addEventListener('pointerdown', e => {
+    const r = vid.lienzo.getBoundingClientRect();
+    videoToque((e.clientY - r.top) * vid.lienzo.height / r.height);
+  });
+
+  // ================= Paso 3: resultados =================
+  function grupos(){
+    const mapa = new Map();
+    for(const x of app.intentos){ const k = claveCondicion(x.d_mm, x.h0nom_cm); if(!mapa.has(k)) mapa.set(k, []); mapa.get(k).push(x); }
+    return [...mapa.values()].sort((a,b) => a[0].d_mm - b[0].d_mm || a[0].h0nom_cm - b[0].h0nom_cm);
+  }
+  const NOMBRE_FUENTE = { sim: 'virtual', video: 'video', arduino: 'Arduino', csv: 'CSV' };
+  const etiquetaFuente = f => `<span class="etq ${f === 'sim' ? 'sim' : f}">${NOMBRE_FUENTE[f] || f}</span>`;
+  function dibujarResultados(){
+    const gs = grupos();
+    let html = '<tr><th>Condición</th><th>n</th><th>t promedio (s)</th><th>Desv. est. (s)</th><th>CV (%)</th><th>t teórico (s)</th><th>Error prom. (%)</th><th>C<sub>d</sub> exp.</th></tr>';
+    if(!gs.length) html += '<tr><td colspan="8" style="text-align:center;color:#5b7286">Todavía no hay intentos guardados.</td></tr>';
+    const pred = [];
+    for(const g of gs){
+      const inc = g.filter(x => x.incluido), ts = inc.map(x => x.tMedido), tt = inc.map(x => x.tTeorico), cds = inc.map(x => x.cdExp).filter(isFinite);
+      const m = ts.length ? promedio(ts) : NaN, s = desviacion(ts);
+      const fuentes = [...new Set(g.map(x => x.fuente))].map(etiquetaFuente).join(' ');
+      html += `<tr><td>d = ${fmt(g[0].d_mm,1)} mm · h₀ = ${fmt(g[0].h0nom_cm,1)} cm ${fuentes}</td><td>${inc.length}</td><td>${fmt(m,2)}</td><td>${fmt(s,2)}</td><td>${fmt(s/m*100,1)}</td><td>${fmt(tt.length?promedio(tt):NaN,2)}</td><td>${fmt(inc.length?promedio(inc.map(x=>x.error)):NaN,1)}</td><td>${fmt(cds.length?promedio(cds):NaN,3)}</td></tr>`;
+      const p = g.find(x => x.prediccion != null);
+      if(p && isFinite(m)){ const dif = (p.prediccion - m)/m*100; pred.push(`d = ${fmt(g[0].d_mm,1)} mm, h₀ = ${fmt(g[0].h0nom_cm,1)} cm: predijiste <b>${fmt(p.prediccion,0)} s</b> y el promedio medido fue <b>${fmt(m,1)} s</b>; tu predicción fue un ${fmt(Math.abs(dif),0)} % ${dif >= 0 ? 'más larga' : 'más corta'}.`); }
+    }
+    $('tablaCondiciones').innerHTML = html;
+    $('comparaPrediccion').innerHTML = pred.length ? `<div class="aviso"><b>Tu predicción versus lo medido:</b><br>${pred.join('<br>')}</div>` : '';
+    let filas = '<tr><th>N°</th><th>Fuente</th><th>d (mm)</th><th>h₀ nom. (cm)</th><th>h₀ medido (cm)</th><th>t medido (s)</th><th>t teórico (s)</th><th>Error (%)</th><th>C<sub>d</sub> exp.</th><th>R²</th><th>Fin por</th><th>Incluir</th></tr>';
+    if(!app.intentos.length) filas += '<tr><td colspan="12" style="text-align:center;color:#5b7286">Sin intentos.</td></tr>';
+    app.intentos.forEach((x, i) => {
+      filas += `<tr class="${x.incluido ? '' : 'excluido'}"><td>${i+1}</td><td>${etiquetaFuente(x.fuente)}</td><td>${fmt(x.d_mm,1)}</td><td>${fmt(x.h0nom_cm,1)}</td><td>${fmt(x.h0med_cm,1)}</td><td>${fmt(x.tMedido,2)}</td><td>${fmt(x.tTeorico,2)}</td><td>${fmt(x.error,1)}</td><td>${fmt(x.cdExp,3)}</td><td>${fmt(x.r2,4)}</td><td style="text-align:left">${x.motivo}</td><td style="text-align:center"><input type="checkbox" data-incluir="${x.id}" ${x.incluido ? 'checked' : ''} aria-label="Incluir intento ${i+1}"></td></tr>`;
+    });
+    $('tablaIntentos').innerHTML = filas;
+    const sel = $('selIntento');
+    sel.innerHTML = app.intentos.map((x,i) => `<option value="${x.id}">N° ${i+1} · ${fmt(x.d_mm,1)} mm · ${fmt(x.h0nom_cm,0)} cm</option>`).join('');
+    if(app.intentos.length){ if(!app.intentos.some(x => x.id === app.seleccionado)) app.seleccionado = app.intentos[app.intentos.length-1].id; sel.value = String(app.seleccionado); }
+    dibujarRaiz(); dibujarPregunta();
+  }
+  let graficoRaiz = null, graficoPregunta = null;
+  function dibujarRaiz(){
+    const x = app.intentos.find(v => v.id === app.seleccionado);
+    const hf_mm = x ? x.hf_cm*10 : 0;
+    const pts = x ? x.puntos.filter(([t,h]) => h > hf_mm).map(([t,h]) => ({ x: t, y: Math.sqrt((h - hf_mm)/1000) })) : [];
+    const reg = x ? regresionRaiz(x.puntos.map(([t,h]) => ({ t, h })), hf_mm) : null;
+    let recta = [];
+    if(reg){ const tMax = pts[pts.length-1].x; recta = [{ x: 0, y: reg.b }, { x: tMax, y: reg.b + reg.m*tMax }]; }
+    const datos = { datasets: [
+      { label: '√(h − h_f) medido', data: pts, showLine: false, pointRadius: 2.2, backgroundColor: '#2b8cc4', borderColor: '#2b8cc4', order: 1 },
+      { label: 'Recta ajustada', data: recta, showLine: true, pointRadius: 0, borderColor: '#f59e0b', backgroundColor: '#f59e0b', borderWidth: 2.5, order: 0 } ] };
+    if(graficoRaiz){ graficoRaiz.data = datos; graficoRaiz.update('none'); }
+    else graficoRaiz = new Chart($('graficoRaiz'), { type: 'scatter', data: datos, options: { animation: false, responsive: true, maintainAspectRatio: false, plugins: { legend: { position: 'bottom', labels: { color: COLOR_EJES } } }, scales: escalas('t (s)', '√(h − h_f) (√m)') } });
+    $('ajusteTxt').textContent = (x && reg) ? `Pendiente = ${fmt(reg.m, 5)} √m/s · R² = ${fmt(reg.r2, 4)} · C_d = −pendiente · (A/a) · √(2/g) = ${fmt(cdDesdePendiente(reg.m, x.D_cm, x.d_mm, x.g || 9.81), 3)}` : 'Guarda al menos un intento para ver la linealización.';
+  }
+  function dibujarPregunta(){
+    const colores = ['#2b8cc4', '#f59e0b', '#2fa56d', '#9b7fd4', '#e0585b'];
+    const diametros = [...new Set(app.intentos.map(x => x.d_mm))].sort((a,b)=>a-b);
+    const datasets = [];
+    diametros.forEach((d, k) => {
+      const col = colores[k % colores.length], inc = app.intentos.filter(x => x.d_mm === d && x.incluido);
+      datasets.push({ label: `Medido d = ${fmt(d,1)} mm`, data: inc.map(x => ({ x: x.h0med_cm, y: x.tMedido })), showLine: false, pointRadius: 3.5, backgroundColor: col, borderColor: col, order: 0 });
+      const ref = inc[0] || app.intentos.find(x => x.d_mm === d), curva = [];
+      for(let h = ref.hf_cm + 0.5; h <= 20.01; h += 0.5) curva.push({ x: h, y: tiempoTeorico(ref.D_cm, d, ref.cdRef, h/100, ref.hf_cm/100, ref.g || 9.81) });
+      datasets.push({ label: `Teoría d = ${fmt(d,1)} mm`, data: curva, showLine: true, pointRadius: 0, borderColor: col, backgroundColor: 'transparent', borderDash: [6,4], borderWidth: 1.8, order: 1 });
+    });
+    const datos = { datasets };
+    if(graficoPregunta){ graficoPregunta.data = datos; graficoPregunta.update('none'); }
+    else { graficoPregunta = new Chart($('graficoPregunta'), { type: 'scatter', data: datos, options: { animation: false, responsive: true, maintainAspectRatio: false, plugins: { legend: { position: 'bottom', labels: { color: COLOR_EJES } } }, scales: escalas('h₀ (cm)', 't de vaciado (s)') } }); graficoPregunta.options.scales.y.min = 0; graficoPregunta.update('none'); }
+  }
+
+  // ================= Exportar CSV (separador ; y coma decimal para Excel en español) =================
+  function descargar(nombre, texto){
+    const blob = new Blob(['﻿' + texto], { type: 'text/csv;charset=utf-8' });
+    const a = document.createElement('a'); a.href = URL.createObjectURL(blob); a.download = nombre;
+    document.body.appendChild(a); a.click(); a.remove(); setTimeout(() => URL.revokeObjectURL(a.href), 2000);
+  }
+  const c2 = (x, n) => (x == null || !isFinite(x)) ? '' : x.toFixed(n).replace('.', ',');
+  const nombreExport = f => f === 'sim' ? 'virtual (simulado)' : (NOMBRE_FUENTE[f] || f);
+  function exportarResumen(){
+    const enc = ['N','Fuente','Fecha','D (cm)','d (mm)','h0 nominal (cm)','h0 medido (cm)','hf (cm)','g (m/s2)','t medido (s)','t teorico (s)','t ideal Cd=1 (s)','Error (%)','Cd modelo','Cd experimental','R2','Fin por','Incluido','Prediccion (s)','Archivo'];
+    const filas = app.intentos.map((x,i) => [i+1, nombreExport(x.fuente), x.fecha, c2(x.D_cm,1), c2(x.d_mm,1), c2(x.h0nom_cm,1), c2(x.h0med_cm,2), c2(x.hf_cm,1), c2(x.g || 9.81,3), c2(x.tMedido,3), c2(x.tTeorico,3), c2(x.tIdeal,3), c2(x.error,2), c2(x.cdRef,2), c2(x.cdExp,4), c2(x.r2,5), x.motivo, x.incluido ? 'si' : 'no', x.prediccion == null ? '' : c2(x.prediccion,0), x.archivo || ''].join(';'));
+    descargar('labfluids_resultados.csv', [enc.join(';'), ...filas].join('\r\n'));
+  }
+  function exportarCrudos(){
+    const filas = ['N;Fuente;t (s);h (mm)'];
+    app.intentos.forEach((x,i) => x.puntos.forEach(([t,h]) => filas.push([i+1, nombreExport(x.fuente), c2(t,3), c2(h,1)].join(';'))));
+    descargar('labfluids_datos_h_t.csv', filas.join('\r\n'));
+  }
+
+  // ================= Eventos de la interfaz =================
+  document.querySelectorAll('.modo').forEach(b => b.addEventListener('click', () => elegirModo(b.dataset.modo)));
+  document.querySelectorAll('nav.pasos button').forEach(b => b.addEventListener('click', () => { const n = Number(b.dataset.ir); if(n === 1) marcarPaso(1); else irAPaso(n); }));
+  $('btnIrMedir').addEventListener('click', () => irAPaso(2));
+  $('btnIniciar').addEventListener('click', iniciarIntento);
+  $('btnDetener').addEventListener('click', detenerIntento);
+  $('btnProcesarCsv').addEventListener('click', procesarCsv);
+  $('btnGuardar').addEventListener('click', guardarIntento);
+  $('btnDescartar').addEventListener('click', () => {
+    app.pendiente = null; $('resumenIntento').classList.add('oculto');
+    if(app.modo === 'video') videoReiniciarPuntos();
+    else { $('instruccion').className = 'aviso'; $('instruccion').textContent = 'Intento descartado. Presiona «Iniciar intento» para repetir.'; }
+  });
+  $('btnVerResultados').addEventListener('click', () => { if(app.pendiente) guardarIntento(); irAPaso(3); });
+  $('btnNuevaCondicion').addEventListener('click', () => { $('prediccion').value = ''; marcarPaso(1); $('h0').focus(); });
+  $('btnBorrarTodo').addEventListener('click', () => $('confirmarBorrado').classList.remove('oculto'));
+  $('btnCancelarBorrado').addEventListener('click', () => $('confirmarBorrado').classList.add('oculto'));
+  $('btnConfirmarBorrado').addEventListener('click', () => { app.intentos = []; guardarLocal(); $('confirmarBorrado').classList.add('oculto'); dibujarResultados(); });
+  $('btnExportResumen').addEventListener('click', exportarResumen);
+  $('btnExportCrudos').addEventListener('click', exportarCrudos);
+  $('selIntento').addEventListener('change', e => { app.seleccionado = Number(e.target.value); dibujarRaiz(); });
+  $('tablaIntentos').addEventListener('change', e => {
+    const id = e.target.dataset.incluir; if(!id) return;
+    const x = app.intentos.find(v => String(v.id) === id);
+    if(x){ x.incluido = e.target.checked; guardarLocal(); dibujarResultados(); }
+  });
+  $('btnMedirG').addEventListener('click', medirG);
+  $('archivoCsv').addEventListener('change', e => {
+    const f = e.target.files[0]; if(!f) return;
+    const lector = new FileReader();
+    lector.onload = () => { app.csvTexto = String(lector.result); app.csvNombre = f.name; const n = app.csvTexto.split(/\r?\n/).filter(l => parsearLinea(l)).length; $('infoCsv').textContent = `${f.name}: ${n} líneas de datos.`; };
+    lector.readAsText(f);
+  });
+  $('archivoVideo').addEventListener('change', e => {
+    const f = e.target.files[0]; if(!f) return;
+    if(app.videoUrl) URL.revokeObjectURL(app.videoUrl);
+    app.videoUrl = URL.createObjectURL(f); app.videoNombre = f.name;
+    vid.etapa = 'cal0'; vid.y0 = vid.y1 = vid.cmPx = vid.t0 = null; vid.puntos = [];
+    $('infoVideo').textContent = `${f.name}: cargando…`;
+    videoCargar(app.videoUrl);
+  });
+  $('buscador').addEventListener('input', e => videoIrA(parseFloat(e.target.value)));
+  $('btnAtras').addEventListener('click', () => videoIrA(vid.el.currentTime - parseFloat($('paso').value)));
+  $('btnAdelante').addEventListener('click', () => videoIrA(vid.el.currentTime + parseFloat($('paso').value)));
+  $('btnMarcarInicio').addEventListener('click', videoMarcarInicio);
+  $('btnDeshacer').addEventListener('click', () => { const p = vid.puntos.pop(); if(p) videoIrA(p.tv); videoActualizarUI(); });
+  $('btnRecalibrar').addEventListener('click', () => { vid.y0 = vid.y1 = vid.cmPx = vid.t0 = null; vid.puntos = []; vid.etapa = 'cal0'; videoActualizarUI(); });
+  $('btnTerminarVideo').addEventListener('click', videoAnalizar);
+  $('distCal').addEventListener('change', () => { if(vid.y0 != null && vid.y1 != null){ vid.cmPx = parseFloat($('distCal').value) / (vid.y0 - vid.y1); } videoActualizarUI(); });
+
+  function cambioConexion(conectado){
+    app.conectado = conectado;
+    $('estadoConexion').innerHTML = conectado ? '<span class="punto on"></span>Conectado' : '<span class="punto"></span>Desconectado';
+    $('btnConectar').disabled = conectado || !('serial' in navigator);
+    $('btnDesconectar').disabled = !conectado;
+  }
+  $('btnConectar').addEventListener('click', async () => {
+    try{
+      app.serial = new FuenteSerial(linea => { const m = parsearLinea(linea); if(!m) return; if(app.proc) app.proc.push(m); else eventosProc.muestra(m, null, m.h >= 0); }, cambioConexion);
+      await app.serial.conectar();
+    }catch(e){ $('estadoConexion').innerHTML = '<span class="punto err"></span>No se pudo conectar'; }
+  });
+  $('btnDesconectar').addEventListener('click', () => app.serial && app.serial.desconectar());
+
+  // ================= Inicio =================
+  cargarLocal();
+  elegirModo('sim');
+  if(typeof Chart === 'undefined'){
+    document.querySelector('main').insertAdjacentHTML('afterbegin', '<div class="aviso error">No se pudo cargar la librería de gráficos (Chart.js). Revisa la conexión a internet.</div>');
+    return;
+  }
+  Chart.defaults.color = COLOR_EJES;
+  Chart.defaults.font.family = "'Nunito','Segoe UI',Arial,sans-serif";
+  reiniciarGraficoVivo();
+  requestAnimationFrame(bucleDibujo);
+
+  // Acceso para pruebas automáticas (no afecta el uso normal)
+  window.LabFluids = { app, vid, Procesador, FuenteSimulada, FuenteSerial, parsearLinea, tiempoTeorico, cdDesdePendiente, regresion, regresionRaiz, videoToque, videoIrA, videoMarcarInicio, videoAnalizar, dibujarEstanque };
+})();
+</script>
+</body>
+</html>

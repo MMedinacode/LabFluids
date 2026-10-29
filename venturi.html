@@ -1,0 +1,386 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Tubo de Venturi · LabFluids</title>
+<meta name="description" content="Laboratorio virtual del tubo de Venturi: ecuación de Bernoulli y de continuidad, medición de caudal con tubos piezométricos.">
+<link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 32 32'%3E%3Cpath d='M16 3C11 10 7 14.5 7 19a9 9 0 0 0 18 0c0-4.5-4-9-9-16z' fill='%2313a092'/%3E%3C/svg%3E">
+<link rel="preconnect" href="https://fonts.googleapis.com"><link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Nunito:wght@500;600;700;800;900&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="assets/labfluids.css">
+<script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/4.4.1/chart.umd.min.js" integrity="sha384-bs/nf9FbdNouRbMiFcrcZfLXYPKiPaGVGplVbv7dLGECccEXDW+S3zjqSKR5ZEaD" crossorigin="anonymous"></script>
+<style>
+  .lecturas{display:flex; flex-wrap:wrap; gap:6px; margin-top:8px}
+  .lecturas span{font-size:12.5px; background:var(--tarjeta-2); border:1px solid var(--borde); border-radius:999px; padding:2px 9px; font-variant-numeric:tabular-nums}
+  .pred .opcion b{font-size:14px}
+</style>
+</head>
+<body class="lab-venturi">
+<header class="barra">
+  <a class="volver" href="./">← Inicio</a>
+  <div class="titulo-lab">
+    <span class="icono"><svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="#0b7a6f" stroke-width="2.2" stroke-linecap="round"><path d="M2 8h6l3 3h2l3-3h6M2 16h6l3-3h2l3 3h6"/></svg></span>
+    <div><h1>Tubo de Venturi</h1><p>Bernoulli y continuidad</p></div>
+  </div>
+  <nav class="pasos" aria-label="Pasos">
+    <button data-ir="paso-config" aria-current="step">1 Configurar</button>
+    <button data-ir="paso-medir">2 Medir</button>
+    <button data-ir="paso-result">3 Resultados</button>
+  </nav>
+</header>
+
+<main>
+<!-- ============ PASO 1 ============ -->
+<section class="paso activo" id="paso-config">
+  <div class="card intro">
+    <h2>¿Por qué el agua acelera cuando el tubo se angosta?</h2>
+    <p>Un <b>tubo de Venturi</b> es un tubo que se angosta en el medio (la «garganta») y después se vuelve a ensanchar. Por la garganta pasa la misma cantidad de agua cada segundo, así que tiene que ir <b>más rápido</b>. Y cuando el agua va más rápido, su <b>presión baja</b>. Eso se ve en los tubitos verticales: el de la garganta sube menos.</p>
+    <p>Con esa diferencia de alturas se puede calcular <b>cuánta agua pasa</b> por el tubo. Así funcionan muchos medidores de caudal reales.</p>
+    <details class="explica">
+      <summary>¿Cómo funciona? (las ecuaciones)</summary>
+      <p><b>Continuidad:</b> el caudal Q es el mismo en todo el tubo. Si el área A es menor, la velocidad v es mayor.</p>
+      <div class="formula">Q = A₁·v₁ = A₂·v₂</div>
+      <p><b>Bernoulli:</b> en un tubo horizontal, lo que gana el agua en velocidad lo pierde en presión. Cada tubito marca la presión como una altura de agua h.</p>
+      <div class="formula">h₁ + v₁²/2g = h₂ + v₂²/2g</div>
+      <p>Juntando las dos se obtiene el caudal a partir de la diferencia de alturas Δh = h₁ − h₂:</p>
+      <div class="formula">Q = C<sub>v</sub> · A₂ · √( 2·g·Δh / (1 − (D₂/D₁)⁴) )</div>
+      <p><b>C<sub>v</sub></b> es el <b>coeficiente del Venturi</b>. Corrige el pequeño roce del agua y vale un poco menos que 1 (en un Venturi bien hecho, entre 0,95 y 0,99). En este laboratorio el tubo tiene un C<sub>v</sub> escondido, y tu tarea es descubrirlo.</p>
+    </details>
+  </div>
+
+  <div class="grid2">
+    <div class="card">
+      <h2><span class="num">1</span>Elige la garganta</h2>
+      <p class="ayuda" style="margin-top:0">El tubo de entrada mide D₁ = 26 mm. Elige el diámetro de la parte angosta (D₂).</p>
+      <div class="opciones" id="gargantas" role="group" aria-label="Diámetro de la garganta">
+        <button class="opcion" data-d2="10" aria-pressed="false"><b>10 mm</b><span>Muy angosta</span></button>
+        <button class="opcion" data-d2="13" aria-pressed="true"><b>13 mm</b><span>La mitad del tubo</span></button>
+        <button class="opcion" data-d2="16" aria-pressed="false"><b>16 mm</b><span>Poco angosta</span></button>
+      </div>
+      <div class="aviso" style="margin-top:14px">Con D₂ = <b id="txtD2">13</b> mm, el agua va <b id="txtVeces">4,0</b> veces más rápido en la garganta que en la entrada.</div>
+    </div>
+    <div class="card pred">
+      <h2><span class="num">2</span>Tu predicción</h2>
+      <p style="margin-top:0">Si <b>duplicas el caudal</b>, ¿qué pasa con la diferencia de altura Δh entre los tubitos?</p>
+      <div class="opciones" id="prediccion" role="group" aria-label="Predicción">
+        <button class="opcion" data-p="igual" aria-pressed="false"><b>No cambia</b></button>
+        <button class="opcion" data-p="doble" aria-pressed="false"><b>Se duplica</b></button>
+        <button class="opcion" data-p="cuadruple" aria-pressed="false"><b>Se cuadruplica</b></button>
+      </div>
+      <p class="ayuda">Al final te mostramos si acertaste.</p>
+    </div>
+  </div>
+  <div class="fila-btn"><button class="btn pri grande" data-ir="paso-medir">Siguiente: medir →</button></div>
+</section>
+
+<!-- ============ PASO 2 ============ -->
+<section class="paso" id="paso-medir">
+  <div class="grid-medir">
+    <div>
+      <div class="lienzo"><canvas id="lienzo" aria-label="Tubo de Venturi con tres tubos piezométricos"></canvas></div>
+      <div class="card" style="margin-top:14px">
+        <div class="deslizador">
+          <div class="cab"><label for="caudal">Abre la llave: caudal</label><output id="outQ">6,0 L/min</output></div>
+          <input type="range" id="caudal" min="0" max="15" step="0.5" value="6">
+        </div>
+        <div class="kpis">
+          <div class="kpi"><small>Caudalímetro</small><b id="kQ">—</b></div>
+          <div class="kpi"><small>h₁ entrada</small><b id="kH1">—</b></div>
+          <div class="kpi"><small>h₂ garganta</small><b id="kH2">—</b></div>
+          <div class="kpi destacado"><small>Δh = h₁ − h₂</small><b id="kDh">—</b></div>
+        </div>
+        <div class="aviso warn oculto" id="avisoRebalse">¡El agua rebalsa el tubo de entrada! Baja un poco el caudal.</div>
+      </div>
+    </div>
+    <div>
+      <div class="card">
+        <h2>Registrar mediciones</h2>
+        <p style="margin-top:0">Elige un caudal, espera que el agua se calme y aprieta <b>Registrar</b>. La app toma <b>5 lecturas</b> seguidas y saca el promedio.</p>
+        <p class="ayuda">Meta: registra al menos <b>5 caudales distintos</b>, por ejemplo 3, 5, 7, 9 y 11 L/min.</p>
+        <div class="fila-btn">
+          <button class="btn pri grande" id="btnRegistrar">📏 Registrar</button>
+          <button class="btn" id="btnDeshacer">Deshacer último</button>
+        </div>
+        <div id="ultimas" class="lecturas" aria-live="polite"></div>
+      </div>
+      <div class="card">
+        <h2>Tus puntos <span class="chip" id="nPuntos">0</span></h2>
+        <div class="tabla-scroll"><table><thead><tr><th>#</th><th>Q (L/min)</th><th>Δh (cm)</th><th>± (cm)</th></tr></thead><tbody id="tablaMed"></tbody></table></div>
+        <div class="fila-btn"><button class="btn pri" data-ir="paso-result">Ver resultados →</button></div>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- ============ PASO 3 ============ -->
+<section class="paso" id="paso-result">
+  <div id="sinDatos" class="card aviso warn">Todavía no tienes mediciones. Vuelve al paso 2 y registra al menos 3 caudales.</div>
+  <div id="conDatos" class="oculto">
+    <div class="card">
+      <h2>Lo que descubriste</h2>
+      <div class="kpis">
+        <div class="kpi destacado"><small>C<sub>v</sub> calculado</small><b id="rCv">—</b></div>
+        <div class="kpi"><small>Ajuste R²</small><b id="rR2">—</b></div>
+        <div class="kpi"><small>Error medio vs teoría</small><b id="rEr">—</b></div>
+        <div class="kpi"><small>Puntos</small><b id="rN">—</b></div>
+      </div>
+      <div class="aviso" id="rPred"></div>
+      <div class="fila-btn"><button class="btn sol" id="btnRevelar">🔍 Revelar el C<sub>v</sub> escondido</button></div>
+      <div class="aviso ok oculto" id="rRevelado"></div>
+    </div>
+    <div class="grid2">
+      <div class="card"><h2>Δh versus caudal</h2><div class="grafico"><canvas id="gDh"></canvas></div>
+        <p class="ayuda">Los puntos son tus mediciones; la curva es la teoría con el C<sub>v</sub> que calculaste. Fíjate que no es una recta: crece como Q².</p></div>
+      <div class="card"><h2>Linealización: Q versus √Δh</h2><div class="grafico"><canvas id="gLin"></canvas></div>
+        <p class="ayuda">Si el modelo es correcto, los puntos forman una recta que pasa por el origen. De su pendiente sale C<sub>v</sub>.</p></div>
+    </div>
+    <div class="card">
+      <h2>Tabla de resultados</h2>
+      <div class="tabla-scroll"><table><thead><tr><th>#</th><th>Q medido (L/min)</th><th>Δh (cm)</th><th>Q ideal, C<sub>v</sub> = 1</th><th>C<sub>v</sub> del punto</th><th>Q teórico, C<sub>v</sub> = 0,98</th><th>Er (%)</th></tr></thead><tbody id="tablaRes"></tbody></table></div>
+      <div class="fila-btn">
+        <button class="btn" id="btnCSV">Descargar datos (CSV)</button>
+        <button class="btn peligro" id="btnBorrar">Borrar todo</button>
+      </div>
+    </div>
+    <div class="card">
+      <h2>Preguntas de análisis</h2>
+      <ol class="preguntas">
+        <li>¿En qué tubito el agua sube menos? ¿Dónde va más rápido el agua? Relaciónalo con la ecuación de Bernoulli.</li>
+        <li>Al duplicar el caudal, ¿cuántas veces cambió Δh? ¿Acertaste tu predicción?</li>
+        <li>¿Por qué el gráfico Q versus √Δh es una recta? ¿Qué significa su pendiente?</li>
+        <li>¿Qué valor de C<sub>v</sub> obtuviste? ¿Por qué es un poco menor que 1?</li>
+        <li>Repite con otra garganta. ¿Con cuál se mide mejor un caudal pequeño? ¿Por qué?</li>
+        <li>El tubo de salida no vuelve a la altura del de entrada. ¿Adónde se fue esa energía?</li>
+        <li>Nombra dos aparatos de la vida real que usen el efecto Venturi.</li>
+      </ol>
+    </div>
+  </div>
+</section>
+</main>
+<footer>LabFluids · Tubo de Venturi · <a href="docs/guia-venturi.pdf" target="_blank" rel="noopener">Guía del estudiante (PDF)</a> · <a href="./">Otros laboratorios</a> · Los KAMIKAZES · Universidad Mayor</footer>
+
+<script src="assets/fisica.js"></script>
+<script src="assets/comun.js"></script>
+<script>
+const { $, num } = LF;
+const D1 = 0.026, CV_REF = 0.98;
+const CV_OCULTO = 0.955 + Math.random() * 0.035;         // cada sesión tiene su propio tubo
+const ALTO_TUBO = 0.60;                                   // altura útil de los tubitos (m)
+const estado = { d2: 0.013, Q: 6 / 60000, pred: null, puntos: [], h: { h1: 0, h2: 0, h3: 0 }, midiendo: false };
+
+// alturas reales de los tres tubitos para un caudal (m). La entrada sube con el caudal (la bomba empuja más);
+// el tubo de salida recupera casi todo, salvo una pérdida de ~13 % de Δh.
+function alturas(Q) {
+  const dh = Fisica.venturiDeltaH({ Q, D1, D2: estado.d2, Cv: CV_OCULTO });
+  const h1 = 0.20 + 1.15 * dh;
+  return { h1, h2: h1 - dh, h3: h1 - 0.13 * dh, dh };
+}
+// una lectura con regla (resolución 1 mm) y menisco que tiembla un poco
+const leer = h => Math.round((h + 0.0008 * Fisica.gauss()) * 1000) / 1000;
+{ const a = alturas(estado.Q); estado.h = { h1: a.h1, h2: a.h2, h3: a.h3 }; }   // los tubitos parten ya en su nivel
+
+/* ---------- paso 1 ---------- */
+function actualizarGarganta() {
+  $('txtD2').textContent = Math.round(estado.d2 * 1000);
+  $('txtVeces').textContent = num((D1 / estado.d2) ** 2, 1);
+}
+document.querySelectorAll('#gargantas .opcion').forEach(b => b.addEventListener('click', () => {
+  document.querySelectorAll('#gargantas .opcion').forEach(x => x.setAttribute('aria-pressed', x === b ? 'true' : 'false'));
+  if (estado.puntos.length && Number(b.dataset.d2) / 1000 !== estado.d2 &&
+      !confirm('Cambiar la garganta borra tus puntos actuales (son de otro tubo). ¿Continuar?')) {
+    document.querySelectorAll('#gargantas .opcion').forEach(x => x.setAttribute('aria-pressed', Number(x.dataset.d2) / 1000 === estado.d2 ? 'true' : 'false'));
+    return;
+  }
+  if (Number(b.dataset.d2) / 1000 !== estado.d2) estado.puntos = [];
+  estado.d2 = Number(b.dataset.d2) / 1000; actualizarGarganta(); pintarTabla();
+}));
+document.querySelectorAll('#prediccion .opcion').forEach(b => b.addEventListener('click', () => {
+  estado.pred = b.dataset.p;
+  document.querySelectorAll('#prediccion .opcion').forEach(x => x.setAttribute('aria-pressed', x === b ? 'true' : 'false'));
+}));
+
+/* ---------- paso 2: dibujo animado ---------- */
+const lienzo = $('lienzo');
+const particulas = Array.from({ length: 70 }, () => ({ x: Math.random(), y: Math.random() * 2 - 1 }));
+// radio relativo del tubo según la posición x (0 a 1)
+function radioRel(x) {
+  const r2 = estado.d2 / D1;
+  if (x < 0.30) return 1;
+  if (x < 0.44) { const s = (x - 0.30) / 0.14; return 1 + (r2 - 1) * (s * s * (3 - 2 * s)); }
+  if (x < 0.56) return r2;
+  if (x < 0.82) { const s = (x - 0.56) / 0.26; return r2 + (1 - r2) * (s * s * (3 - 2 * s)); }
+  return 1;
+}
+let ultimo = performance.now();
+function dibujar(ahora) {
+  const dt = Math.min((ahora - ultimo) / 1000, 0.05); ultimo = ahora;
+  const { ctx, w, h } = LF.prepararLienzo(lienzo, 0.68);
+  const objetivo = alturas(estado.Q);
+  for (const k of ['h1', 'h2', 'h3']) estado.h[k] += (objetivo[k] - estado.h[k]) * Math.min(1, dt * 2.2);   // el agua sube suave
+
+  const x0 = w * 0.06, x1 = w * 0.97, ejeY = h * 0.80, R = Math.max(14, h * 0.075);
+  const X = f => x0 + (x1 - x0) * f;
+  const escala = (ejeY - R - h * 0.06) / ALTO_TUBO;               // px por metro en los tubitos
+  ctx.clearRect(0, 0, w, h);
+
+  // regla de alturas
+  ctx.font = '600 11px Nunito, sans-serif'; ctx.fillStyle = '#8aa0b2'; ctx.strokeStyle = 'rgba(29,53,80,.08)'; ctx.lineWidth = 1;
+  for (let cm = 0; cm <= 60; cm += 10) {
+    const y = ejeY - R - cm / 100 * escala;
+    ctx.beginPath(); ctx.moveTo(x0, y); ctx.lineTo(x1, y); ctx.stroke();
+    ctx.fillText(cm + ' cm', 2, y + 4);
+  }
+
+  // tubitos piezométricos
+  const tubos = [{ f: 0.17, h: estado.h.h1, n: 'h₁' }, { f: 0.50, h: estado.h.h2, n: 'h₂' }, { f: 0.90, h: estado.h.h3, n: 'h₃' }];
+  const anchoT = Math.max(12, w * 0.028);
+  for (const t of tubos) {
+    const cx = X(t.f), arriba = ejeY - R - ALTO_TUBO * escala, base = ejeY - R * radioRel(t.f);
+    ctx.fillStyle = '#ffffff'; ctx.strokeStyle = '#9fd3cb'; ctx.lineWidth = 2;
+    ctx.beginPath(); ctx.roundRect(cx - anchoT / 2, arriba, anchoT, base - arriba + 2, 5); ctx.fill(); ctx.stroke();
+    const ya = Math.max(arriba, ejeY - R - Math.max(t.h, 0) * escala);
+    const grad = ctx.createLinearGradient(0, ya, 0, base); grad.addColorStop(0, '#5fd0c2'); grad.addColorStop(1, '#13a092');
+    ctx.fillStyle = grad; ctx.fillRect(cx - anchoT / 2 + 2.5, ya, anchoT - 5, base - ya);
+    ctx.fillStyle = '#0b7a6f'; ctx.font = '800 13px Nunito, sans-serif'; ctx.textAlign = 'center';
+    ctx.fillText(t.n, cx, arriba - 6);
+    ctx.font = '700 11.5px Nunito, sans-serif'; ctx.fillStyle = '#1d3550';
+    ctx.fillText(num(t.h * 100, 1) + ' cm', Math.min(cx + anchoT * 2.3, w - 24), ya + 4); ctx.textAlign = 'left';
+  }
+  // línea de Δh
+  const ya1 = ejeY - R - estado.h.h1 * escala, ya2 = ejeY - R - estado.h.h2 * escala;
+  ctx.setLineDash([5, 4]); ctx.strokeStyle = '#ff8a5c'; ctx.lineWidth = 2;
+  ctx.beginPath(); ctx.moveTo(X(0.17), ya1); ctx.lineTo(X(0.50) + anchoT, ya1); ctx.stroke(); ctx.setLineDash([]);
+  if (estado.h.h1 - estado.h.h2 > 0.01) {
+    ctx.strokeStyle = '#ff8a5c'; ctx.beginPath(); ctx.moveTo(X(0.50) + anchoT * 0.9, ya1); ctx.lineTo(X(0.50) + anchoT * 0.9, ya2); ctx.stroke();
+    ctx.fillStyle = '#c4532a'; ctx.font = '800 12px Nunito, sans-serif'; ctx.textAlign = 'right'; ctx.fillText('Δh', X(0.50) - anchoT * 0.8, (ya1 + ya2) / 2 + 4); ctx.textAlign = 'left';
+  }
+
+  // cuerpo del tubo
+  ctx.beginPath();
+  for (let i = 0; i <= 100; i++) { const f = i / 100; ctx.lineTo(X(f), ejeY - R * radioRel(f)); }
+  for (let i = 100; i >= 0; i--) { const f = i / 100; ctx.lineTo(X(f), ejeY + R * radioRel(f)); }
+  ctx.closePath();
+  const gt = ctx.createLinearGradient(0, ejeY - R, 0, ejeY + R); gt.addColorStop(0, '#8fe0d5'); gt.addColorStop(1, '#2fb5a6');
+  ctx.fillStyle = estado.Q > 0 ? gt : '#cdeee9'; ctx.fill(); ctx.strokeStyle = '#0b7a6f'; ctx.lineWidth = 2.5; ctx.stroke();
+
+  // partículas: van más rápido donde el tubo es angosto (v = Q / A)
+  const vVisual = estado.Q * 60000 / 6 * 0.09;                    // velocidad de dibujo en la entrada (fracción por segundo)
+  ctx.fillStyle = 'rgba(255,255,255,.9)';
+  for (const p of particulas) {
+    const r = radioRel(p.x);
+    p.x += vVisual / (r * r) * dt;
+    if (p.x > 1) { p.x -= 1; p.y = Math.random() * 2 - 1; }
+    ctx.beginPath(); ctx.arc(X(p.x), ejeY + p.y * R * r * 0.82, 2.2, 0, Math.PI * 2); ctx.fill();
+  }
+  // flecha y rótulos
+  ctx.fillStyle = '#5b7286'; ctx.font = '700 11.5px Nunito, sans-serif';
+  const corto = w < 480;                                          // en celular, rótulos más cortos
+  ctx.fillText((corto ? 'D₁ = ' : 'Entrada D₁ = ') + '26 mm', X(0.0), ejeY + R + 18);
+  ctx.textAlign = 'center'; ctx.fillText((corto ? 'D₂ = ' : 'Garganta D₂ = ') + Math.round(estado.d2 * 1000) + ' mm', X(0.5), ejeY + R + 18); ctx.textAlign = 'left';
+  requestAnimationFrame(dibujar);
+}
+requestAnimationFrame(dibujar);
+
+// valores en pantalla (lectura en vivo con un poco de ruido, como un instrumento)
+setInterval(() => {
+  const real = alturas(estado.Q), rebalsa = real.h1 > ALTO_TUBO;
+  $('avisoRebalse').classList.toggle('oculto', !rebalsa);
+  $('btnRegistrar').disabled = rebalsa || estado.Q <= 0 || estado.midiendo;
+  const qL = estado.Q * 60000 * (1 + 0.004 * Fisica.gauss());
+  $('kQ').textContent = estado.Q > 0 ? num(qL, 1) + ' L/min' : '0 L/min';
+  $('kH1').textContent = num(leer(estado.h.h1) * 100, 1) + ' cm';
+  $('kH2').textContent = num(leer(estado.h.h2) * 100, 1) + ' cm';
+  $('kDh').textContent = num((estado.h.h1 - estado.h.h2) * 100, 1) + ' cm';
+}, 400);
+
+$('caudal').addEventListener('input', e => { estado.Q = Number(e.target.value) / 60000; $('outQ').textContent = num(Number(e.target.value), 1) + ' L/min'; });
+
+// registrar: 5 lecturas seguidas de h1 y h2 y del caudalímetro (±1 %)
+$('btnRegistrar').addEventListener('click', () => {
+  estado.midiendo = true; $('btnRegistrar').disabled = true;
+  const reales = alturas(estado.Q), qReal = estado.Q, lect = [];
+  $('ultimas').innerHTML = '';
+  let k = 0;
+  const tic = setInterval(() => {
+    const dh = leer(reales.h1) - leer(reales.h2);
+    lect.push({ dh, q: qReal * (1 + 0.01 * Fisica.gauss()) });
+    $('ultimas').insertAdjacentHTML('beforeend', `<span>Δh = ${num(dh * 100, 1)} cm</span>`);
+    if (++k === 5) {
+      clearInterval(tic);
+      const dhs = lect.map(l => l.dh), qs = lect.map(l => l.q);
+      estado.puntos.push({ Q: Fisica.media(qs), dh: Fisica.media(dhs), sd: Fisica.desviacion(dhs), lecturas: dhs });
+      estado.midiendo = false; pintarTabla();
+    }
+  }, 300);
+});
+$('btnDeshacer').addEventListener('click', () => { estado.puntos.pop(); pintarTabla(); });
+
+function pintarTabla() {
+  $('nPuntos').textContent = estado.puntos.length;
+  $('tablaMed').innerHTML = estado.puntos.map((p, i) =>
+    `<tr><td>${i + 1}</td><td>${num(p.Q * 60000, 2)}</td><td>${num(p.dh * 100, 2)}</td><td>${num(p.sd * 100, 2)}</td></tr>`).join('')
+    || '<tr><td colspan="4" style="text-align:center; color:var(--tenue)">Aún no hay puntos</td></tr>';
+}
+pintarTabla(); actualizarGarganta();
+
+/* ---------- paso 3 ---------- */
+LF.estiloGraficos();
+let gDh = null, gLin = null;
+function analizar() {
+  const P = estado.puntos.filter(p => p.dh > 0);
+  $('sinDatos').classList.toggle('oculto', P.length >= 3);
+  $('conDatos').classList.toggle('oculto', P.length < 3);
+  if (P.length < 3) return;
+  const b4 = (estado.d2 / D1) ** 4, k1 = Fisica.area(estado.d2) * Math.sqrt(2 * Fisica.G / (1 - b4));   // Q ideal = k1·√Δh
+  const xs = P.map(p => Math.sqrt(p.dh)), ys = P.map(p => p.Q);
+  const pend = Fisica.rectaOrigen(xs, ys), cv = pend / k1;
+  const r2 = Fisica.recta(xs, ys).r2;
+  const filas = P.map(p => {
+    const qi = Fisica.venturiCaudal({ dh: p.dh, D1, D2: estado.d2, Cv: 1 });
+    const qt = qi * CV_REF;
+    return { ...p, qi, cvP: p.Q / qi, qt, er: Math.abs(p.Q - qt) / qt * 100 };
+  });
+  $('rCv').textContent = num(cv, 3);
+  $('rR2').textContent = num(r2, 4);
+  $('rEr').textContent = num(Fisica.media(filas.map(f => f.er)), 1) + ' %';
+  $('rN').textContent = P.length;
+  $('tablaRes').innerHTML = filas.map((f, i) => `<tr><td>${i + 1}</td><td>${num(f.Q * 60000, 2)}</td><td>${num(f.dh * 100, 2)}</td><td>${num(f.qi * 60000, 2)}</td><td>${num(f.cvP, 3)}</td><td>${num(f.qt * 60000, 2)}</td><td>${num(f.er, 1)}</td></tr>`).join('');
+  const txtPred = { igual: '«no cambia»', doble: '«se duplica»', cuadruple: '«se cuadruplica»' };
+  $('rPred').innerHTML = (estado.pred ? `Tu predicción fue ${txtPred[estado.pred]}. ` : '') +
+    `Según tus datos, Δh crece con el <b>cuadrado</b> del caudal: al duplicar Q, Δh se multiplica por 4. ` +
+    (estado.pred === 'cuadruple' ? '¡Acertaste! 🎉' : estado.pred ? 'Mira el gráfico de la izquierda: la curva se empina cada vez más.' : '');
+
+  const qmax = Math.max(...P.map(p => p.Q)) * 1.1, curva = [];
+  for (let i = 0; i <= 40; i++) { const q = qmax * i / 40; curva.push({ x: q * 60000, y: Fisica.venturiDeltaH({ Q: q, D1, D2: estado.d2, Cv: cv }) * 100 }); }
+  const datos1 = { datasets: [
+    { type: 'scatter', label: 'Tus mediciones', data: P.map(p => ({ x: p.Q * 60000, y: p.dh * 100 })), backgroundColor: '#13a092', pointRadius: 6 },
+    { type: 'line', label: 'Teoría (C_v calculado)', data: curva, borderColor: '#ff8a5c', borderWidth: 2.5, pointRadius: 0 } ] };
+  const op1 = { scales: { x: { type: 'linear', title: { display: true, text: 'Caudal Q (L/min)' }, min: 0 }, y: { title: { display: true, text: 'Δh (cm)' }, min: 0 } } };
+  if (gDh) gDh.destroy(); gDh = new Chart($('gDh'), { type: 'scatter', data: datos1, options: op1 });
+  const xmax = Math.max(...xs) * 1.1;
+  const datos2 = { datasets: [
+    { type: 'scatter', label: 'Tus mediciones', data: P.map(p => ({ x: Math.sqrt(p.dh * 100), y: p.Q * 60000 })), backgroundColor: '#13a092', pointRadius: 6 },
+    { type: 'line', label: 'Recta por el origen', data: [{ x: 0, y: 0 }, { x: xmax * 10, y: pend * xmax * 60000 }], borderColor: '#ff8a5c', borderWidth: 2.5, pointRadius: 0 } ] };
+  const op2 = { scales: { x: { type: 'linear', title: { display: true, text: '√Δh  (√cm)' }, min: 0 }, y: { title: { display: true, text: 'Q (L/min)' }, min: 0 } } };
+  if (gLin) gLin.destroy(); gLin = new Chart($('gLin'), { type: 'scatter', data: datos2, options: op2 });
+  estado.cv = cv; estado.filas = filas;
+}
+$('btnRevelar').addEventListener('click', () => {
+  const er = Math.abs(estado.cv - CV_OCULTO) / CV_OCULTO * 100;
+  $('rRevelado').innerHTML = `El C<sub>v</sub> escondido de este tubo era <b>${num(CV_OCULTO, 3)}</b>. Tú calculaste <b>${num(estado.cv, 3)}</b>: una diferencia de <b>${num(er, 1)} %</b>. ` +
+    (er < 2 ? '¡Excelente medición!' : 'Prueba con más puntos o caudales más altos para mejorar.');
+  $('rRevelado').classList.remove('oculto');
+});
+$('btnCSV').addEventListener('click', () => {
+  const filas = [['LabFluids - Tubo de Venturi (datos simulados)'], ['D1 (mm)', 26, 'D2 (mm)', estado.d2 * 1000, 'Cv calculado', estado.cv],
+    ['punto', 'Q medido (L/min)', 'dh promedio (cm)', 'desv. estandar (cm)', 'Q ideal Cv=1 (L/min)', 'Cv del punto', 'Q teorico Cv=0.98 (L/min)', 'Er (%)', 'lecturas dh (cm)']];
+  estado.filas.forEach((f, i) => filas.push([i + 1, +(f.Q * 60000).toFixed(3), +(f.dh * 100).toFixed(2), +(f.sd * 100).toFixed(3), +(f.qi * 60000).toFixed(3), +f.cvP.toFixed(4), +(f.qt * 60000).toFixed(3), +f.er.toFixed(2), f.lecturas.map(x => (x * 100).toFixed(1)).join(' ')]));
+  LF.descargarCSV('labfluids_venturi.csv', filas);
+});
+$('btnBorrar').addEventListener('click', () => { if (confirm('¿Borrar todas tus mediciones?')) { estado.puntos = []; pintarTabla(); analizar(); $('rRevelado').classList.add('oculto'); } });
+
+LF.iniciarPasos(id => { if (id === 'paso-result') analizar(); });
+</script>
+</body>
+</html>
