@@ -245,7 +245,7 @@ function dibujar(ahora) {
     ctx.fillStyle = '#0b7a6f'; ctx.font = '800 13px Nunito, sans-serif'; ctx.textAlign = 'center';
     ctx.fillText(t.n, cx, arriba - 6);
     ctx.font = '700 11.5px Nunito, sans-serif'; ctx.fillStyle = '#1d3550';
-    ctx.fillText(num(t.h * 100, 1) + ' cm', Math.min(cx + anchoT * 2.3, w - 24), ya + 4); ctx.textAlign = 'left';
+    ctx.fillText(num(t.h * 100, 1) + ' cm', Math.min(cx + anchoT * 2.3, w - 24), ya - 7); ctx.textAlign = 'left';
   }
   // línea de Δh
   const ya1 = ejeY - R - estado.h.h1 * escala, ya2 = ejeY - R - estado.h.h2 * escala;
