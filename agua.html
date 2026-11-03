@@ -19,7 +19,7 @@
   #btnCrono.corriendo{background:var(--error); border-color:var(--error)}
   .tiempos{display:flex; flex-wrap:wrap; gap:8px; margin:12px 0 4px; min-height:34px}
   .tiempos span{background:var(--lab-cla); color:var(--lab-osc); font-weight:800; border-radius:999px; padding:5px 8px 5px 14px; display:inline-flex; align-items:center; gap:6px}
-  .tiempos button{border:0; background:rgba(255,255,255,.7); color:var(--lab-osc); width:22px; height:22px; border-radius:50%; cursor:pointer; font-weight:900; line-height:1}
+  .tiempos button{border:0; background:rgba(255,255,255,.7); color:var(--lab-osc); width:32px; height:32px; border-radius:50%; cursor:pointer; font-weight:900; line-height:1}
   .grande-num{font-size:44px; font-weight:900; color:var(--lab-osc); line-height:1.05}
   .grande-num small{font-size:18px; color:var(--tenue); font-weight:800}
   .equivale{display:flex; flex-wrap:wrap; gap:6px; margin-top:8px}
@@ -28,7 +28,7 @@
   .resumen .card{margin:0; text-align:center}
   .resumen small{display:block; font-weight:800; font-size:12px; letter-spacing:.4px; text-transform:uppercase; color:var(--tenue)}
   .resumen b{display:block; font-size:30px; color:var(--lab-osc); margin:4px 0 0}
-  .resumen .card.verde{background:var(--lab); border-color:var(--lab)} .resumen .card.verde small, .resumen .card.verde b{color:#fff}
+  .resumen .card.verde{background:var(--lab-osc); border-color:var(--lab-osc)} .resumen .card.verde small, .resumen .card.verde b{color:#fff}
   .barras{display:grid; gap:10px; margin-top:10px}
   .barras .fila{display:grid; grid-template-columns:120px 1fr 90px; gap:10px; align-items:center; font-weight:700; font-size:14px}
   .barras .pista{background:var(--fondo-2); border-radius:999px; height:22px; overflow:hidden}
@@ -144,14 +144,14 @@
     <div class="card">
       <h2><span class="num">2</span>Tu boleta de agua <span class="chip gris">opcional</span></h2>
       <p style="margin-top:0">Para saber cuánta <b>plata</b> es, toma tu última boleta (Aguas Andinas, Esval, Essbio, Nuevosur u otra) y busca dos números:</p>
-      <div class="campo"><label for="totalBoleta">Total a pagar ($)</label><input type="number" id="totalBoleta" min="0" step="1" inputmode="numeric" placeholder="ej: 18990"></div>
+      <div class="campo"><label for="totalBoleta">Total a pagar ($)</label><input type="text" id="totalBoleta" inputmode="numeric" autocomplete="off" placeholder="ej: 18.990"></div>
       <div class="campo"><label for="m3Boleta">Consumo del mes (m³)</label><input type="number" id="m3Boleta" min="0" step="0.1" inputmode="decimal" placeholder="ej: 15"></div>
       <p class="ayuda">1 m³ (metro cúbico) son 1.000 litros. El consumo aparece en la boleta como «consumo» o «m³ facturados».</p>
       <details class="explica">
         <summary>¿Por qué no usamos un precio fijo?</summary>
         <p>Cada empresa sanitaria y cada comuna tiene su propia tarifa, y cambia con el tiempo. Además, en algunas zonas el agua que se gasta sobre cierto límite en verano se cobra más cara («sobreconsumo»). Por eso es más exacto usar <b>tu</b> boleta.</p>
         <p>Dividir el total por los m³ da un precio promedio por m³ que incluye el cargo fijo. Si quieres más precisión, suma solo los cargos variables por m³ que aparecen en el detalle (agua potable, alcantarillado y tratamiento) y escríbelos aquí:</p>
-        <div class="campo"><label for="precioM3">Precio por m³ ($)</label><input type="number" id="precioM3" min="0" step="1" inputmode="numeric" placeholder="opcional"></div>
+        <div class="campo"><label for="precioM3">Precio por m³ ($)</label><input type="text" id="precioM3" inputmode="numeric" autocomplete="off" placeholder="opcional"></div>
       </details>
       <p class="ayuda" id="txtPrecio"></p>
     </div>
@@ -246,7 +246,8 @@ function elegirArtefacto(id) {
   $('consejoEnvase').textContent = id === 'ducha' || id === 'manguera'
     ? 'Consejo: para la ducha o la manguera usa un balde, porque se llena más lento y la medición es más exacta.'
     : 'Consejo: elige un envase que tarde al menos 5 segundos en llenarse.';
-  estado.tiempos = [];                                    // las mediciones eran de otra llave estado.ejemplo = false; pintarTiempos(); usoTexto();
+  estado.tiempos = [];                                    // las mediciones eran de otra llave
+  estado.ejemplo = false; pintarTiempos(); usoTexto();
 }
 function elegirEnvase(id) {
   estado.envase = id;
@@ -315,8 +316,10 @@ function usoTexto() {
   $('txtPrecio').innerHTML = Number.isFinite(p) ? `Precio que usaremos: <b>$${entero(p)} por m³</b> (${num(p / 1000, 1)} pesos por litro).` : '';
 }
 ['minutos', 'veces', 'dias', 'totalBoleta', 'm3Boleta', 'precioM3'].forEach(id => $(id).addEventListener('input', usoTexto));
+// pesos escritos a la chilena: "18.990" o "$ 18990" -> 18990 (se ignoran puntos, $ y espacios)
+const pesos = id => Number(String($(id).value).split(',')[0].replace(/[^\d]/g, ''));
 function precio() {                                       // pesos por m³
-  const pm = Number($('precioM3').value), tot = Number($('totalBoleta').value), m3 = Number($('m3Boleta').value);
+  const pm = pesos('precioM3'), tot = pesos('totalBoleta'), m3 = Number($('m3Boleta').value);
   if (pm > 0) return pm;
   if (tot > 0 && m3 > 0) return tot / m3;
   return NaN;

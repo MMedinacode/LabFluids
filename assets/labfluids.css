@@ -45,7 +45,7 @@ img,svg,canvas{max-width:100%}
 nav.pasos{display:flex; gap:6px; margin-left:auto; flex-wrap:wrap}
 nav.pasos button{border:1.5px solid var(--borde); background:var(--tarjeta); color:var(--tenue); border-radius:999px; padding:7px 14px;
   font:inherit; font-size:14px; font-weight:800; cursor:pointer}
-nav.pasos button[aria-current="step"]{background:var(--lab); border-color:var(--lab); color:#fff}
+nav.pasos button[aria-current="step"]{background:var(--lab-osc); border-color:var(--lab-osc); color:#fff}
 
 main{max-width:1180px; margin:0 auto; padding:18px 16px 40px}
 .paso{display:none} .paso.activo{display:block}
@@ -57,7 +57,7 @@ main{max-width:1180px; margin:0 auto; padding:18px 16px 40px}
 /* ---------- tarjetas ---------- */
 .card{background:var(--tarjeta); border:1px solid var(--borde); border-radius:var(--radio); padding:18px; margin-bottom:16px; box-shadow:var(--sombra)}
 .card > h2{font-size:13px; text-transform:uppercase; letter-spacing:1px; color:var(--lab-osc); margin:0 0 12px; font-weight:800}
-.card > h2 .num{display:inline-flex; width:22px; height:22px; border-radius:50%; background:var(--lab); color:#fff; align-items:center; justify-content:center; font-size:12px; margin-right:6px}
+.card > h2 .num{display:inline-flex; width:22px; height:22px; border-radius:50%; background:var(--lab-osc); color:#fff; align-items:center; justify-content:center; font-size:12px; margin-right:6px}
 .intro{background:linear-gradient(135deg,var(--lab-cla),#fff 70%); border-color:transparent}
 .intro h2{font-size:21px !important; text-transform:none !important; letter-spacing:0 !important; color:var(--texto) !important}
 .intro p{margin:6px 0}
@@ -85,8 +85,8 @@ input:focus-visible, select:focus-visible, button:focus-visible, a:focus-visible
 /* ---------- botones ---------- */
 .btn{border:none; border-radius:12px; padding:11px 16px; font:inherit; font-size:14.5px; font-weight:800; cursor:pointer;
   color:var(--texto); background:var(--fondo-2); display:inline-flex; align-items:center; gap:6px; text-decoration:none}
-.btn.pri{background:var(--lab); color:#fff}
-.btn.pri:hover{background:var(--lab-osc)}
+.btn.pri{background:var(--lab-osc); color:#fff}
+.btn.pri:hover{filter:brightness(.9)}
 .btn.ok{background:var(--ok); color:#fff}
 .btn.sol{background:var(--sol); color:#3a2a00}
 .btn.peligro{background:transparent; color:var(--error); border:1.5px solid var(--error)}
@@ -105,7 +105,7 @@ input:focus-visible, select:focus-visible, button:focus-visible, a:focus-visible
 .kpi{background:var(--tarjeta-2); border:1px solid var(--borde); border-radius:14px; padding:9px 10px; text-align:center}
 .kpi small{display:block; font-size:11px; color:var(--tenue); text-transform:uppercase; letter-spacing:.5px; font-weight:700}
 .kpi b{display:block; font-size:21px; color:var(--lab-osc); font-variant-numeric:tabular-nums; margin-top:2px}
-.kpi.destacado{background:var(--lab); border-color:var(--lab)} .kpi.destacado small, .kpi.destacado b{color:#fff}
+.kpi.destacado{background:var(--lab-osc); border-color:var(--lab-osc)} .kpi.destacado small, .kpi.destacado b{color:#fff}
 
 /* ---------- lienzos y gráficos ---------- */
 .lienzo{position:relative; background:var(--tarjeta-2); border:1px solid var(--borde); border-radius:16px; padding:8px; overflow:hidden}
@@ -134,10 +134,12 @@ footer a{color:var(--tenue)}
   body{font-size:15px}
   .barra{padding:9px 12px; gap:8px}
   nav.pasos{margin-left:0; width:100%}
-  nav.pasos button{flex:1; padding:7px 6px; font-size:13px}
+  nav.pasos button{flex:1; padding:7px 6px; font-size:13px; min-height:42px}
   main{padding:12px 10px 32px}
   .card{padding:15px 13px}
   .campo input[type=number], .campo select{width:100px}
   .grafico{height:240px}
+  /* 16 px evita que el iPhone haga zoom al tocar un campo */
+  input:not([type=range]):not([type=checkbox]):not([type=radio]):not([type=file]), select, textarea{font-size:16px}
 }
 @media (prefers-reduced-motion: reduce){ .btn:active{transform:none} *{scroll-behavior:auto !important} }

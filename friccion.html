@@ -9,7 +9,7 @@
 <link rel="preconnect" href="https://fonts.googleapis.com"><link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link href="https://fonts.googleapis.com/css2?family=Nunito:wght@500;600;700;800;900&display=swap" rel="stylesheet">
 <link rel="stylesheet" href="assets/labfluids.css">
-<script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/4.4.1/chart.umd.min.js" integrity="sha384-bs/nf9FbdNouRbMiFcrcZfLXYPKiPaGVGplVbv7dLGECccEXDW+S3zjqSKR5ZEaD" crossorigin="anonymous"></script>
+<script src="assets/chart.umd.min.js"></script>
 <style>
   .muestra{display:inline-block; width:14px; height:14px; border-radius:50%; border:1.5px solid rgba(0,0,0,.2); vertical-align:-2px; margin-right:5px}
   .regimen{font-weight:900}
@@ -85,7 +85,7 @@
 <section class="paso" id="paso-medir">
   <div class="grid-medir">
     <div>
-      <div class="lienzo"><canvas id="lienzo" aria-label="Tubería con tinta de color y dos manómetros"></canvas></div>
+      <div class="lienzo"><canvas role="img" id="lienzo" aria-label="Tubería con tinta de color y dos manómetros"></canvas></div>
       <div class="card" style="margin-top:14px">
         <div class="deslizador">
           <div class="cab"><label for="caudal">Caudal de la bomba</label><output id="outQ">—</output></div>
@@ -322,13 +322,14 @@ setInterval(() => {
 $('btnRegistrar').addEventListener('click', () => {
   estado.midiendo = true; $('btnRegistrar').disabled = true; $('ultimas').innerHTML = '';
   const m = modelo(estado.Q), lect = []; let k = 0;
+  const lista = puntos();                                 // experimento con que se partió midiendo
   const tic = setInterval(() => {
     const dp = Math.max(0, Math.round(m.dp * (1 + 0.01 * Fisica.gauss()) * 10) / 10), q = estado.Q * (1 + 0.01 * Fisica.gauss());
     lect.push({ dp, q });
     $('ultimas').insertAdjacentHTML('beforeend', `<span>Δp = ${fmtDp(dp)}</span>`);
     if (++k === 5) {
       clearInterval(tic);
-      puntos().push({ Q: Fisica.media(lect.map(l => l.q)), dp: Fisica.media(lect.map(l => l.dp)), sd: Fisica.desviacion(lect.map(l => l.dp)), lecturas: lect.map(l => l.dp) });
+      lista.push({ Q: Fisica.media(lect.map(l => l.q)), dp: Fisica.media(lect.map(l => l.dp)), sd: Fisica.desviacion(lect.map(l => l.dp)), lecturas: lect.map(l => l.dp) });
       estado.midiendo = false; pintarTabla();
     }
   }, 300);
@@ -354,6 +355,7 @@ LF.estiloGraficos();
 let gDp = null, gMoody = null;
 function analizar() {
   const P = puntos().map(calcular), f = fluido(), eps = Fisica.MATERIALES[estado.mat].eps;
+  if (!f.misterio) $('rRevelado').classList.add('oculto');   // lo revelado es solo del fluido misterioso
   $('sinDatos').classList.toggle('oculto', P.length >= 3);
   $('conDatos').classList.toggle('oculto', P.length < 3);
   if (P.length < 3) return;

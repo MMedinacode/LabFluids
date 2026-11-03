@@ -1,4 +1,8 @@
 /* LabFluids · utilidades compartidas: atajos del DOM, formato de números en español, pasos, CSV y gráficos. */
+// Safari < 16 no tiene roundRect: se dibuja un rectángulo normal para que la animación no se caiga
+if (typeof CanvasRenderingContext2D !== 'undefined' && !CanvasRenderingContext2D.prototype.roundRect)
+  CanvasRenderingContext2D.prototype.roundRect = function (x, y, w, h) { this.rect(x, y, w, h); };
+
 (function () {
   const $ = id => document.getElementById(id);
   // número con coma decimal (estilo Chile)

@@ -6,7 +6,7 @@
 <title>Vaciado de un estanque · LabFluids</title>
 <link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 32 32'%3E%3Cpath d='M16 3C11 10 7 14.5 7 19a9 9 0 0 0 18 0c0-4.5-4-9-9-16z' fill='%232b8cc4'/%3E%3C/svg%3E">
 <meta name="description" content="LabFluids: laboratorio virtual con sensores para estudiar el vaciado de un estanque con la ley de Torricelli. Funciona en celulares y computadores.">
-<script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/4.4.1/chart.umd.min.js" integrity="sha384-bs/nf9FbdNouRbMiFcrcZfLXYPKiPaGVGplVbv7dLGECccEXDW+S3zjqSKR5ZEaD" crossorigin="anonymous"></script>
+<script src="assets/chart.umd.min.js"></script>
 <link rel="preconnect" href="https://fonts.googleapis.com"><link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link href="https://fonts.googleapis.com/css2?family=Nunito:wght@500;600;700;800;900&display=swap" rel="stylesheet">
 <link rel="stylesheet" href="assets/labfluids.css">
@@ -21,7 +21,7 @@
   .modo .rec{display:block; margin-top:4px; font-size:11.5px; font-weight:800; color:var(--ok)}
   .campo input[type=file]{max-width:100%; color:var(--tenue)}
   .btn.warn{background:var(--sol); color:#3a2a00}
-  .kpi.tiempo{background:var(--lab); border-color:var(--lab)} .kpi.tiempo small, .kpi.tiempo b{color:#fff}
+  .kpi.tiempo{background:var(--lab-osc); border-color:var(--lab-osc)} .kpi.tiempo small, .kpi.tiempo b{color:#fff}
   .estado{display:inline-flex; align-items:center; gap:7px; font-weight:700; font-size:13.5px; color:var(--tenue)}
   .punto{width:11px; height:11px; border-radius:50%; background:var(--suave); display:inline-block}
   .punto.on{background:var(--ok)} .punto.med{background:var(--sol)} .punto.err{background:var(--error)}
@@ -153,7 +153,7 @@
     <div id="medirSensores">
       <div class="grid2">
         <div class="lienzo">
-          <canvas id="estanque" width="640" height="520" aria-label="Animación del estanque con el sensor ultrasónico y el sensor de contacto"></canvas>
+          <canvas role="img" id="estanque" width="640" height="520" aria-label="Animación del estanque con el sensor ultrasónico y el sensor de contacto"></canvas>
           <span class="badge" id="badgeFuente">Sensores virtuales</span>
         </div>
         <div class="card" style="margin-bottom:0">
@@ -173,7 +173,7 @@
       </div>
       <div class="card" style="margin-top:16px">
         <h2>Altura medida por el sensor · h(t)</h2>
-        <div class="grafico"><canvas id="graficoVivo" aria-label="Gráfico de altura del agua versus tiempo"></canvas></div>
+        <div class="grafico"><canvas role="img" id="graficoVivo" aria-label="Gráfico de altura del agua versus tiempo"></canvas></div>
       </div>
     </div>
 
@@ -186,7 +186,7 @@
         </div>
         <div class="aviso" id="instruccionVideo" aria-live="polite">Carga un video en el paso 1.</div>
         <div class="lienzo" style="padding:6px">
-          <canvas id="lienzoVideo" width="640" height="360" aria-label="Cuadro del video; toca para marcar"></canvas>
+          <canvas role="img" id="lienzoVideo" width="640" height="360" aria-label="Cuadro del video; toca para marcar"></canvas>
         </div>
         <video id="video" playsinline muted preload="auto" class="oculto"></video>
         <div class="campo"><label for="buscador">Tiempo del video: <b id="tVideo">0,0 s</b></label><span class="ayuda" id="tDesdeInicio"></span></div>
@@ -237,13 +237,13 @@
     <div class="grid2">
       <div class="card">
         <h2>¿Cómo afectan h<sub>0</sub> y d al tiempo?</h2>
-        <div class="grafico bajo"><canvas id="graficoPregunta" aria-label="Tiempo de vaciado versus altura inicial"></canvas></div>
+        <div class="grafico bajo"><canvas role="img" id="graficoPregunta" aria-label="Tiempo de vaciado versus altura inicial"></canvas></div>
         <p class="ayuda">Puntos: intentos medidos. Líneas: predicción de Torricelli.</p>
       </div>
       <div class="card">
         <h2>Linealización: √(h − h<sub>f</sub>) versus t</h2>
         <div class="campo"><label for="selIntento">Intento</label><select id="selIntento" style="width:190px"></select></div>
-        <div class="grafico bajo"><canvas id="graficoRaiz" aria-label="Raíz de la altura versus tiempo con recta ajustada"></canvas></div>
+        <div class="grafico bajo"><canvas role="img" id="graficoRaiz" aria-label="Raíz de la altura versus tiempo con recta ajustada"></canvas></div>
         <p class="ayuda" id="ajusteTxt"></p>
       </div>
     </div>
@@ -533,6 +533,7 @@
   }
   const claveCondicion = (d_mm, h0_cm) => `${d_mm}|${h0_cm}`;
   function prepararMedicion(){
+    if(app.proc && (app.proc.estado === 'armado' || app.proc.estado === 'midiendo')) detenerIntento();   // no seguir midiendo con la configuración vieja
     const { cfg, errores } = leerConfig();
     if(app.modo === 'arduino' && !app.conectado) errores.push('Conecta el Arduino antes de medir (o usa el laboratorio virtual).');
     if(app.modo === 'csv' && !app.csvTexto) errores.push('Elige un archivo CSV antes de continuar.');
@@ -601,25 +602,27 @@
   // ================= Paso 2: animación del estanque =================
   const lienzo = $('estanque'), ctx = lienzo.getContext('2d');
   function dibujarEstanque(){
+    const k = Math.min(1.5, 640 / Math.max(lienzo.clientWidth || 640, 1));   // >1 en celular: agranda las letras
+    const F = (px, peso) => (peso ? peso + ' ' : '') + Math.round(px * k) + 'px Nunito, Segoe UI, Arial';
     const W = lienzo.width, H = lienzo.height, c = app.cfg || { D_cm: 8, d_mm: 5, hf_cm: 2, h0_cm: 16 };
     const v = app.visual;
     ctx.clearRect(0,0,W,H);
     const fondo = ctx.createLinearGradient(0,0,0,H); fondo.addColorStop(0,'#f4f9fb'); fondo.addColorStop(1,'#e2eff5');
     ctx.fillStyle = fondo; ctx.fillRect(0,0,W,H);
-    const tx = 150, tw = 250, ty = 120, tBase = 470, H_CM = 22;       // estanque: 22 cm de alto dibujados
+    const tx = 150, tw = 250, ty = 120, tBase = k > 1.2 ? 450 : 470, H_CM = 22;   // estanque: 22 cm de alto (en celular, más arriba para que quepan los textos)
     const pxCm = (tBase - ty) / H_CM;
     const yDe = h => tBase - h*pxCm;                                  // alturas medidas desde la base
     // orificio a escala: su borde inferior está en h_f, a la misma altura que el sensor de contacto
     const yInf = yDe(c.hf_cm), ySupO = Math.min(yDe(c.hf_cm + c.d_mm/10), yInf - 3), yCen = (yInf + ySupO)/2;
     // graduaciones desde la base
-    ctx.font = '14px Nunito, Segoe UI, Arial'; ctx.textAlign = 'right';
+    ctx.font = F(14); ctx.textAlign = 'right';
     for(let h=0; h<=20; h+=2){
       const y = yDe(h);
       ctx.strokeStyle = 'rgba(91,114,134,0.35)'; ctx.beginPath(); ctx.moveTo(tx-10,y); ctx.lineTo(tx,y); ctx.stroke();
       ctx.fillStyle = 'rgba(91,114,134,0.8)'; ctx.fillText(h+' cm', tx-14, y+4);
     }
-    ctx.font = '13px Nunito, Segoe UI, Arial'; ctx.fillStyle = 'rgba(91,114,134,0.8)';
-    ctx.fillText('altura desde', tx-8, yDe(20)-30); ctx.fillText('la base', tx-8, yDe(20)-14);
+    ctx.font = F(13); ctx.fillStyle = 'rgba(91,114,134,0.8)';
+    ctx.fillText('altura desde', tx-8, yDe(20)-12-18*k); ctx.fillText('la base', tx-8, yDe(20)-12);
     // agua
     const hAgua = v.h == null ? 0 : Math.max(v.h, 0);
     const ySup = Math.max(ty, yDe(hAgua));
@@ -644,32 +647,33 @@
       for(let s=0; s<=0.35; s+=0.01){ const x = tx+tw + vel*s*ppm*0.45, y = yCen + 0.5*G_REAL*s*s*ppm*0.45; if(y > H-10 || x > W-10) break; if(s===0) ctx.moveTo(x,y); else ctx.lineTo(x,y); }
       ctx.stroke(); ctx.lineWidth = 1; ctx.lineCap = 'butt';
     }
-    ctx.fillStyle = '#b06a00'; ctx.textAlign = 'left'; ctx.font = '600 15px Nunito, Segoe UI, Arial'; ctx.fillText('orificio d = ' + fmt(c.d_mm,1) + ' mm', tx+tw+14, ySupO-12);
+    ctx.fillStyle = '#b06a00'; ctx.textAlign = 'left'; ctx.font = F(15, 600); ctx.fillText('orificio d = ' + fmt(c.d_mm,1) + ' mm', tx+tw+14, ySupO-12);
     // sensor de contacto a la altura del borde inferior del orificio (la línea punteada llega justo a ese borde)
     ctx.setLineDash([5,4]); ctx.strokeStyle = 'rgba(245,158,11,0.8)'; ctx.beginPath(); ctx.moveTo(tx, yInf); ctx.lineTo(tx+tw+10, yInf); ctx.stroke(); ctx.setLineDash([]);
     ctx.fillStyle = '#f59e0b'; ctx.fillRect(tx+4, yInf-18, 9, 18);
     const ledOn = v.contacto === 0;
     ctx.beginPath(); ctx.arc(tx-86, yInf, 10, 0, Math.PI*2); ctx.fillStyle = ledOn ? '#2fa56d' : '#cfe0e8'; ctx.fill();
     if(ledOn){ ctx.beginPath(); ctx.arc(tx-86, yInf, 17, 0, Math.PI*2); ctx.fillStyle = 'rgba(47,165,109,0.25)'; ctx.fill(); }
-    ctx.fillStyle = 'rgba(29,53,80,0.85)'; ctx.textAlign = 'left'; ctx.font = '14px Nunito, Segoe UI, Arial';
+    ctx.fillStyle = 'rgba(29,53,80,0.85)'; ctx.textAlign = 'left'; ctx.font = F(14);
     ctx.fillText('LED', tx-100, yInf+30);
     // sensor ultrasónico arriba, centrado
     const sx = tx + tw/2, sy = 52;
     ctx.fillStyle = '#2E75B6'; ctx.fillRect(sx-40, sy-14, 80, 22);
     [sx-18, sx+18].forEach(cx => { ctx.beginPath(); ctx.arc(cx, sy+12, 9, 0, Math.PI*2); ctx.fillStyle = '#e6edf7'; ctx.fill(); ctx.strokeStyle = '#1F3864'; ctx.stroke(); });
-    ctx.fillStyle = 'rgba(29,53,80,0.9)'; ctx.textAlign = 'center'; ctx.font = '600 16px Nunito, Segoe UI, Arial';
+    ctx.fillStyle = 'rgba(29,53,80,0.9)'; ctx.textAlign = 'center'; ctx.font = F(16, 600);
     ctx.fillText('Sensor ultrasónico', sx, sy-22);
     if(v.lectura != null && isFinite(v.lectura) && v.lectura >= 0){
       const yL = yDe(v.lectura);
       ctx.setLineDash([3,5]); ctx.strokeStyle = 'rgba(43,140,196,0.8)'; ctx.beginPath(); ctx.moveTo(sx, sy+22); ctx.lineTo(sx, yL); ctx.stroke(); ctx.setLineDash([]);
       const fase = (performance.now()/300) % 1;                       // "pings" que bajan
       ctx.strokeStyle = `rgba(43,140,196,${0.6*(1-fase)})`; ctx.beginPath(); ctx.arc(sx, sy+22 + fase*(yL-sy-22), 14, 0.15*Math.PI, 0.85*Math.PI); ctx.stroke();
-      ctx.fillStyle = '#1b6a99'; ctx.textAlign = 'left'; ctx.font = '600 16px Nunito, Segoe UI, Arial';
+      ctx.fillStyle = '#1b6a99'; ctx.textAlign = 'left'; ctx.font = F(16, 600);
       ctx.fillText('lectura: ' + fmt(v.lectura,1) + ' cm', sx+10, Math.min(yL-8, tBase-8));
     }
-    ctx.textAlign = 'left'; ctx.font = '15px Nunito, Segoe UI, Arial'; ctx.fillStyle = 'rgba(91,114,134,0.9)';
-    ctx.fillText('Estanque abierto · D = ' + fmt(c.D_cm,1) + ' cm', tx, tBase+26);
-    ctx.fillText('Sensor de contacto (borde del orificio, ' + fmt(c.hf_cm,1) + ' cm): ' + (v.contacto === 1 ? 'mojado' : v.contacto === 0 ? 'seco (fin)' : '—'), tx, tBase+44);
+    ctx.textAlign = 'left'; ctx.font = F(15); ctx.fillStyle = 'rgba(91,114,134,0.9)';
+    ctx.fillText('Estanque abierto · D = ' + fmt(c.D_cm,1) + ' cm', tx, tBase + 8 + 18 * k);
+    const contacto = v.contacto === 1 ? 'mojado' : v.contacto === 0 ? 'seco (fin)' : '—';
+    ctx.fillText(k > 1.2 ? 'Sensor de contacto: ' + contacto : 'Sensor de contacto (borde del orificio, ' + fmt(c.hf_cm,1) + ' cm): ' + contacto, tx, tBase + 26 + 18 * k);
   }
   function bucleDibujo(){ if(app.paso === 2 && app.modo !== 'video') dibujarEstanque(); requestAnimationFrame(bucleDibujo); }
 
