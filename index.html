@@ -52,9 +52,56 @@
   .como span{font-size:14px; color:var(--tenue)}
   @media (max-width:760px){ .hero{grid-template-columns:1fr} .hero svg{max-height:180px} .rec-grid{grid-template-columns:1fr} }
   @media (max-width:560px){ .hero svg{max-height:110px} }
+
+  /* Intro al entrar: «Los KAMIKAZES presentan · LabFluids» (~1,6 s, una vez por visita, se salta con un toque) */
+  .intro-ov{display:none}
+  html.intro .intro-ov{position:fixed; inset:0; z-index:100; display:flex; flex-direction:column; align-items:center; justify-content:center; gap:10px;
+    background:radial-gradient(circle at 50% 42%, #ffffff 0%, var(--fondo) 55%, var(--fondo-2) 100%); cursor:pointer; transition:opacity .45s ease, transform .45s ease}
+  html.intro.intro-fin .intro-ov{opacity:0; transform:translateY(-14px); pointer-events:none}
+  html.intro body{overflow:hidden}
+  .intro-ov .equipo{font-size:13px; font-weight:800; letter-spacing:.22em; text-transform:uppercase; color:var(--tenue); opacity:0; animation:intro-sube .5s .1s ease forwards}
+  .intro-ov svg{width:86px; height:86px; opacity:0; animation:intro-gota .55s .25s cubic-bezier(.2,1.4,.4,1) forwards}
+  .intro-ov .ola{animation:intro-llena 1.2s .35s ease-out forwards; transform:translateY(34px)}
+  .intro-ov .nombre{margin:0; font-size:clamp(34px,8vw,52px); font-weight:900; letter-spacing:-.5px; color:var(--texto); opacity:0; animation:intro-sube .5s .45s ease forwards}
+  .intro-ov .nombre em{font-style:normal; color:var(--agua)}
+  .intro-ov .carga{width:150px; height:5px; border-radius:99px; background:var(--agua-cla); overflow:hidden; margin-top:6px; opacity:0; animation:intro-sube .3s .55s ease forwards}
+  .intro-ov .carga i{display:block; height:100%; width:100%; background:var(--agua); border-radius:inherit; transform-origin:left; transform:scaleX(0); animation:intro-barra 1s .6s ease-in-out forwards}
+  .intro-ov .saltar{position:absolute; bottom:22px; font-size:13px; color:var(--suave)}
+  @keyframes intro-sube{from{opacity:0; transform:translateY(10px)} to{opacity:1; transform:none}}
+  @keyframes intro-gota{from{opacity:0; transform:scale(.5)} to{opacity:1; transform:none}}
+  @keyframes intro-llena{to{transform:translateY(0)}}
+  @keyframes intro-barra{to{transform:scaleX(1)}}
+  /* después de la intro, las opciones de perfil aparecen una tras otra */
+  .perfiles-entra .perfil{opacity:0; animation:intro-sube .45s ease forwards}
+  .perfiles-entra .perfil:nth-child(2){animation-delay:.1s}
+  .perfiles-entra .perfil:nth-child(3){animation-delay:.2s}
+  @media (prefers-reduced-motion: reduce){ html.intro .intro-ov{display:none} html.intro body{overflow:auto} .perfiles-entra .perfil{opacity:1; animation:none} }
 </style>
+<script>
+  // Decide antes de pintar si se muestra la intro: solo la primera vez por visita y si el usuario no pidió reducir movimiento.
+  (function () {
+    try {
+      if (matchMedia('(prefers-reduced-motion: reduce)').matches) return;
+      if (sessionStorage.getItem('lf-intro')) return;
+      sessionStorage.setItem('lf-intro', '1');
+    } catch (e) { return; }
+    document.documentElement.classList.add('intro');
+  })();
+</script>
 </head>
 <body>
+<div class="intro-ov" id="intro" aria-hidden="true">
+  <div class="equipo">Los KAMIKAZES presentan</div>
+  <svg viewBox="0 0 40 40">
+    <defs><clipPath id="intro-clip"><path d="M20 4c-6 8.5-11 14-11 19.5a11 11 0 0 0 22 0C31 18 26 12.5 20 4z"/></clipPath></defs>
+    <path d="M20 4c-6 8.5-11 14-11 19.5a11 11 0 0 0 22 0C31 18 26 12.5 20 4z" fill="#d6ecf8"/>
+    <g clip-path="url(#intro-clip)"><path class="ola" d="M0 14 Q5 11 10 14 T20 14 T30 14 T40 14 V40 H0z" fill="#2b8cc4"/></g>
+    <path d="M14.5 25a5.5 5.5 0 0 0 5.5 5.5" stroke="#fff" stroke-width="2.2" fill="none" stroke-linecap="round"/>
+  </svg>
+  <p class="nombre">Lab<em>Fluids</em></p>
+  <div class="carga"><i></i></div>
+  <div class="saltar">Toca para saltar</div>
+</div>
 <header class="barra">
   <a class="marca" href="./">
     <svg class="gota" viewBox="0 0 40 40" aria-hidden="true"><rect width="40" height="40" rx="12" fill="#d6ecf8"/><path d="M20 7c-5 7-9 11.5-9 16a9 9 0 0 0 18 0c0-4.5-4-9-9-16z" fill="#2b8cc4"/><path d="M15.5 24a4.5 4.5 0 0 0 4.5 4.5" stroke="#fff" stroke-width="2.2" fill="none" stroke-linecap="round"/></svg>
@@ -209,6 +256,22 @@ document.querySelectorAll('.perfil').forEach(b => b.addEventListener('click', ()
 }));
 $('verTodos').addEventListener('click', () => { LF.perfil.guardar(''); mostrar(''); $('todos').scrollIntoView({ behavior: 'smooth' }); });
 mostrar(LF.perfil.leer() || '');
+
+// Intro: se cierra sola a los 1,6 s o con un toque/tecla; después las opciones de perfil aparecen una tras otra
+(function () {
+  const raiz = document.documentElement;
+  if (!raiz.classList.contains('intro')) return;
+  let cerrada = false;
+  const cerrar = () => {
+    if (cerrada) return; cerrada = true;
+    raiz.classList.add('intro-fin');
+    document.querySelector('.perfiles').classList.add('perfiles-entra');
+    setTimeout(() => { raiz.classList.remove('intro', 'intro-fin'); $('intro').remove(); }, 460);
+  };
+  setTimeout(cerrar, 1600);
+  $('intro').addEventListener('click', cerrar);
+  addEventListener('keydown', cerrar, { once: true });
+})();
 </script>
 </body>
 </html>
