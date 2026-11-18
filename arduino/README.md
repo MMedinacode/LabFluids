@@ -1,6 +1,6 @@
 # Hardware de LabFluids (Arduino)
 
-El hardware es **opcional**: la app funciona sola con sensores virtuales. El Arduino sirve para medir el vaciado real de una botella y mandar los datos a la app por cable USB (Web Serial, compatible con cualquier navegador).
+El hardware es **opcional**: la app funciona sola con sensores virtuales. El Arduino sirve para medir el vaciado real de una botella y mandar los datos a la app por cable USB (Web Serial). La app sin Arduino funciona en cualquier navegador, también en el celular; la conexión por cable con el Arduino necesita Chrome o Edge en un computador.
 
 > Estado: el programa `labfluids/labfluids.ino` es la versión 0.2 y **todavía no se prueba en el montaje físico**.
 
