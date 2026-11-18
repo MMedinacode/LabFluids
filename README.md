@@ -69,6 +69,6 @@ datos/                CSV y un video sintético de prueba (marcados como simulad
 | Ricardo Donoso | Product Owner | [Roles del equipo y estado de los gates](docs/roles-del-equipo.md) |
 | Benjamín Cáceres | Responsable científico | [Fundamento científico](docs/fundamento-cientifico.md) |
 | Lucas Serrano | Hardware / Instrumentación | [Hardware y conexiones del Arduino](arduino/README.md) |
-| Matías Alvayay | Software / Datos | Simulador original del vaciado (base de `vaciado.html` y `simulador.html`) |
+| Matías Alvayay | Software / Datos | [Simulador original del vaciado](docs/simulador-original.md) (base de `vaciado.html` y `simulador.html`) |
 | Matías Medina | UX/UI | Interfaz de la app, portada por perfiles y publicación |
 | Miguel Salesky | Pedagógico / Documentación | [Cómo usar LabFluids en clase](docs/uso-en-clase.md) y guías del estudiante |
