@@ -1,62 +1,42 @@
-# LabFluids · Laboratorios virtuales de fluidos
+# Hardware de LabFluids (Arduino)
 
-Cuatro laboratorios virtuales de mecánica de fluidos que funcionan en el navegador de cualquier celular o computador, sin instalar nada.
-Proyecto de Innovación Tecnológica, Universidad Mayor. Equipo **Los KAMIKAZES**. Simulador original del vaciado: Matías Alvayay.
+El hardware es **opcional**: la app funciona sola con sensores virtuales. El Arduino sirve para medir el vaciado real de una botella y mandar los datos a la app por cable USB (Web Serial, en Chrome o Edge).
 
-**Página publicada (versión 4.0):** https://mmedinacode.github.io/LabFluids/
+> Estado: el programa `labfluids/labfluids.ino` es la versión 0.2 y **todavía no se prueba en el montaje físico**.
 
-La portada pregunta para qué se va a usar (colegio, U o instituto, o casa), recomienda un laboratorio y deja ver los demás.
+## Materiales
 
-## Los cuatro laboratorios
+- Arduino Uno y cable USB.
+- Sensor ultrasónico HC-SR04: mide la altura del agua desde arriba.
+- Sensor de contacto sumergible: detecta cuando el agua deja de salir.
+- LED con resistencia de 220 Ω: se enciende cuando termina el ensayo.
+- Botella o estanque con un orificio de 4 o 5 mm cerca de la base.
 
-| Laboratorio | Archivo | Público principal | Qué se descubre | Guía |
-|---|---|---|---|---|
-| Vaciado de un estanque | `vaciado.html` | 3° y 4° medio | Coeficiente de descarga C_d (ley de Torricelli) | [guia-vaciado.pdf](docs/guia-vaciado.pdf) |
-| Tubo de Venturi | `venturi.html` | 1° año de educación superior | Coeficiente de velocidad C_v (Bernoulli y continuidad) | [guia-venturi.pdf](docs/guia-venturi.pdf) |
-| Fricción en tuberías | `friccion.html` | 1° año de educación superior | Régimen de flujo (Reynolds), factor de fricción y viscosidad de un fluido misterioso | [guia-friccion.pdf](docs/guia-friccion.pdf) |
-| Agua en casa | `agua.html` | Público general | Caudal de una llave, litros y pesos al mes, ahorro y goteras | [guia-agua.pdf](docs/guia-agua.pdf) |
+## Conexiones
 
-Cada laboratorio tiene tres pasos (configurar o medir, medir o uso, resultados), explica su fundamento con las ecuaciones y guarda un valor escondido que el estudiante descubre con sus datos. Los datos de los laboratorios virtuales son **simulados** y así se indica en los CSV que se descargan.
+| Componente | Pin del Arduino |
+|---|---|
+| HC-SR04 · TRIG | 9 |
+| HC-SR04 · ECHO | 8 |
+| HC-SR04 · VCC / GND | 5V / GND |
+| Sensor de contacto | A0 |
+| LED (con resistencia de 220 Ω) | 7 |
 
-### Vaciado de un estanque (v3.1 del simulador, con el diseño nuevo)
+El diagrama completo está en [docs/cableado.png](../docs/cableado.png).
 
-Las alturas se miden desde la base. El orificio y el sensor de contacto están a h_f = 2 cm; cuando el agua llega ahí deja de salir y termina el ensayo. Modelo: t = (A / (C_d·a))·√(2·(h₀ − h_f)/g). Modos: laboratorio virtual, video de una botella real, acelerómetro del celular para medir g, Arduino HC-SR04 por USB e importación de CSV.
+## Qué envía el Arduino
 
-### Tubo de Venturi
+Diez veces por segundo (10 Hz) manda una línea por el puerto serie a 115200 baudios:
 
-Entrada D₁ = 26 mm y garganta de 10, 13 o 16 mm. Tres piezómetros (regla de 1 mm) y un caudalímetro (±1 %). Modelo: Q = C_v·A₂·√(2gΔh / (1 − (D₂/D₁)⁴)), con C_v escondido entre 0,955 y 0,99.
+    t_ms;h_mm;contacto;a0
 
-### Fricción en tuberías
+- `t_ms`: milisegundos desde que se encendió la placa.
+- `h_mm`: altura del agua desde la base, en mm (−1 si no llegó el eco).
+- `contacto`: 1 si el sensor está mojado, 0 cuando queda seco.
+- `a0`: lectura analógica del sensor de contacto (sirve para calibrar).
 
-Agua, agua caliente, leche, aceite de oliva, glicerina y un fluido misterioso; tubos de 8 a 20 mm, de 1 a 5 m, lisos o rugosos. Darcy–Weisbach con f = 64/Re (laminar), Blasius o Haaland (turbulento) y una transición suave entre Re 2300 y 4000. La tinta muestra el experimento de Reynolds. Propiedades de los fluidos: valores aproximados a 20 °C (Çengel y Cimbala; CRC Handbook).
+## Calibración antes de medir
 
-### Agua en casa
-
-Se mide el caudal con un envase y un cronómetro (3 repeticiones). El costo se calcula con la boleta de cada persona (total ÷ m³, o el precio variable por m³), porque las tarifas cambian según la empresa sanitaria, la zona y la época del año: la app no trae precios fijos.
-
-## Estructura
-
-```
-index.html            Portada con perfiles y recomendación
-vaciado.html          Vaciado de un estanque (Torricelli)
-venturi.html          Tubo de Venturi
-friccion.html         Fricción en tuberías
-agua.html             Agua en casa
-simulador.html        Simulador clásico v1.1
-assets/labfluids.css  Estilos compartidos (paleta y componentes)
-assets/fisica.js      Fórmulas de los cuatro laboratorios (se puede probar con Node)
-assets/comun.js       Utilidades compartidas: pasos, formato de números, CSV, gráficos
-pruebas/              Pruebas de las fórmulas: node pruebas/probar_fisica.js
-arduino/labfluids/    Programa del Arduino (también para simular en Tinkercad)
-docs/                 Guías en PDF, diagramas y capturas
-datos/                CSV y un video sintético de prueba (marcados como simulados)
-```
-
-## Verificación
-
-- `node pruebas/probar_fisica.js`: 17 pruebas de las fórmulas (Torricelli, Venturi, Darcy–Weisbach, Hagen–Poiseuille, caudal y goteo), todas pasan.
-- Vaciado (29/09/2026): 30 intentos virtuales con error máximo 3,3 % y C_d = 0,616 ± 0,007 (oculto: 0,615). Video sintético: C_d = 0,618 (real 0,62).
-- Venturi (28/10/2026, datos simulados): 6 caudales de 3 a 13 L/min → C_v = 0,979 (escondido 0,978), R² = 0,9997.
-- Fricción (28/10/2026, datos simulados): agua con error medio de f de 0,5 % y viscosidad calculada de 1,00 mPa·s; fluido misterioso con 0,6 % de diferencia.
-- Agua en casa (28/10/2026): ejemplo de 1,5 L en 9 s → 10 L/min; cálculos de litros, pesos y goteo revisados a mano.
-- Sin desplazamiento horizontal en una pantalla de 375 px; sin errores en la consola.
+1. Medir con una regla la distancia del sensor a la base del estanque y escribirla en `L0_MM` (por defecto 220 mm).
+2. Leer `a0` con el sensor seco y con el sensor mojado, y poner el punto medio en `UMBRAL_CONTACTO` (por defecto 300).
+3. Ajustar `TEMP_C` a la temperatura de la sala (corrige la velocidad del sonido).
